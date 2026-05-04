@@ -1,13 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  type RawBodyRequest,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { CanRaw } from '@app/domain/can-raw';
 import { ApiKeyGuard } from './guards/api-key.guard';
@@ -22,8 +13,8 @@ export class CanCollectorController {
 
   @Post('collect')
   @HttpCode(HttpStatus.CREATED)
-  async collect(@Req() req: RawBodyRequest<Request>): Promise<{ received: number }> {
-    const body = req.rawBody;
+  async collect(@Req() req: Request): Promise<{ received: number }> {
+    const body = req.body as Buffer;
 
     if (!body || body.length === 0) {
       throw new BadRequestException('Empty payload');
