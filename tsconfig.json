@@ -14,6 +14,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@app/*": ["src/app/*"],
+      "@infrastructure/*": ["src/infrastructure/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
