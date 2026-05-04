@@ -11,15 +11,18 @@ import {
 import type { Request } from 'express';
 import { CanRaw } from '@app/domain/can-raw';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { CanCollectorService } from '@app/service/can-collector.service';
 
 const FRAME_SIZE = 13;
 
 @Controller('can-collector')
 @UseGuards(ApiKeyGuard)
 export class CanCollectorController {
+  constructor(private readonly service: CanCollectorService) {}
+
   @Post('collect')
   @HttpCode(HttpStatus.CREATED)
-  collect(@Req() req: RawBodyRequest<Request>): { received: number } {
+  async collect(@Req() req: RawBodyRequest<Request>): Promise<{ received: number }> {
     const body = req.rawBody;
 
     if (!body || body.length === 0) {
@@ -41,7 +44,7 @@ export class CanCollectorController {
 
     const frames = this.parseFrames(body, baseTs, deviceId);
 
-    // TODO: pass frames to service for persistence
+    await this.service.collect(frames);
     return { received: frames.length };
   }
 
