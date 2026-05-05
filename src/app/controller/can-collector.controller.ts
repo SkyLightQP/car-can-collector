@@ -46,7 +46,7 @@ export class CanCollectorController {
       const tsOffset = body.readUInt16LE(i);
       const canId = body.readUInt16LE(i + 2);
       const dlc = body.readUInt8(i + 4);
-      const data = Buffer.from(body.subarray(i + 5, i + 13));
+      const data = Buffer.from(body.subarray(i + 5, i + 13)).reverse();
 
       frames.push(new CanRaw(new Date(baseTs + tsOffset), deviceId, canId, dlc, data));
     }
