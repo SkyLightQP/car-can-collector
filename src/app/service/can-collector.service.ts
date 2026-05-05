@@ -43,7 +43,7 @@ export class CanCollectorService implements OnModuleInit, OnModuleDestroy {
       const tsOffset = body.readUInt16LE(i);
       const canId = body.readUInt16LE(i + 2);
       const dlc = body.readUInt8(i + 4);
-      const data = Buffer.from(body.subarray(i + 5, i + 13)).reverse();
+      const data = Buffer.from(body.subarray(i + 5, i + 13));
 
       frames.push(CanRaw.from(new Date(baseTs + tsOffset), deviceId, canId, dlc, data));
     }
