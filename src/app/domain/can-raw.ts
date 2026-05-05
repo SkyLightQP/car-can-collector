@@ -5,7 +5,7 @@ export class CanRaw {
   readonly #dlc: number;
   readonly #data: Buffer;
 
-  constructor(timestamp: Date, deviceId: string, canId: number, dlc: number, data: Buffer) {
+  private constructor(timestamp: Date, deviceId: string, canId: number, dlc: number, data: Buffer) {
     this.#timestamp = timestamp;
     this.#deviceId = deviceId;
     this.#canId = canId;
@@ -35,5 +35,9 @@ export class CanRaw {
 
   toHex(): string {
     return this.data.subarray(0, this.dlc).toString('hex').toUpperCase();
+  }
+
+  static from(timestamp: Date, deviceId: string, canId: number, dlc: number, data: Buffer): CanRaw {
+    return new CanRaw(timestamp, deviceId, canId, dlc, data);
   }
 }
