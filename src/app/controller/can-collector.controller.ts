@@ -12,7 +12,7 @@ export class CanCollectorController {
 
   @Post('collect')
   @HttpCode(HttpStatus.CREATED)
-  collect(@Req() req: Request): { received: number } {
+  async collect(@Req() req: Request): Promise<{ received: number }> {
     const body = req.body as Buffer;
 
     if (!body || body.length === 0) {
@@ -23,12 +23,16 @@ export class CanCollectorController {
     }
 
     const deviceId = req.headers['x-device-id'] as string;
+    const baseTs = parseInt(req.headers['x-base-ts'] as string, 10);
 
     if (!deviceId) {
       throw new BadRequestException('Missing X-Device-ID header');
     }
+    if (isNaN(baseTs)) {
+      throw new BadRequestException('Missing or invalid X-Base-Ts header');
+    }
 
-    const count = this.service.collect(body, deviceId);
+    const count = await this.service.collect(body, deviceId);
     return { received: count };
   }
 }
