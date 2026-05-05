@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 import { CanRecord } from '@app/domain/can-record';
 
 @Entity('can_record')
@@ -18,8 +18,8 @@ export class CanRecordEntity {
   @Column({ type: 'real', name: 'engine_rpm' })
   engineRpm: number;
 
-  @Column({ type: 'real' })
-  tpms: number;
+  @Column({ type: 'text' })
+  tpms: `${string}#${string}#${string}#${string}`;
 
   @Column({ type: 'real', name: 'ambient_temp_c' })
   ambientTempC: number;

@@ -8,7 +8,7 @@ export class CanRecord {
   readonly #vehicleSpeedKph: number; // 차량 속도
   readonly #engineRpm: number; // RPM
 
-  readonly #tpms: number; // 타이어 공기압
+  readonly #tpms: `${string}#${string}#${string}#${string}`; // 타이어 공기압
   readonly #ambientTempC: number; // 외기 온도
   readonly #driveMode: string; // 드라이브 모드
 
@@ -23,7 +23,7 @@ export class CanRecord {
     odometerKm: number,
     vehicleSpeedKph: number,
     engineRpm: number,
-    tpms: number,
+    tpms: `${string}#${string}#${string}#${string}`,
     ambientTempC: number,
     driveMode: string,
     coolantTempC: number,
@@ -63,7 +63,7 @@ export class CanRecord {
     return this.#engineRpm;
   }
 
-  get tpms(): number {
+  get tpms(): `${string}#${string}#${string}#${string}` {
     return this.#tpms;
   }
 
@@ -93,7 +93,7 @@ export class CanRecord {
     odometerKm: number;
     vehicleSpeedKph: number;
     engineRpm: number;
-    tpms: number;
+    tpms: `${string}#${string}#${string}#${string}`;
     ambientTempC: number;
     driveMode: string;
     coolantTempC: number;
