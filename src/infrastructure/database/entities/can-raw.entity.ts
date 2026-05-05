@@ -29,6 +29,6 @@ export class CanRawEntity {
   }
 
   toDomain(): CanRaw {
-    return new CanRaw(this.timestamp, this.deviceId, this.canId, this.dlc, this.data);
+    return CanRaw.from(this.timestamp, this.deviceId, this.canId, this.dlc, this.data);
   }
 }

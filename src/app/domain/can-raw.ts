@@ -1,3 +1,6 @@
+/**
+ * CAN Raw Data
+ */
 export class CanRaw {
   readonly #timestamp: Date;
   readonly #deviceId: string;
