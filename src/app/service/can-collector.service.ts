@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { CanRaw } from '@app/domain/can-raw';
 import { CanRawRepository } from '@infrastructure/repository/can-raw.repository';
 import { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
@@ -9,6 +9,7 @@ const FLUSH_MS = 1000;
 
 @Injectable()
 export class CanCollectorService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(CanCollectorService.name);
   private readonly buffer: CanRaw[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
 
@@ -41,6 +42,7 @@ export class CanCollectorService implements OnModuleInit, OnModuleDestroy {
     const toSave = this.buffer.splice(0);
     const records = this.canDecodeService.decode(toSave);
     await Promise.all([this.canRawRepository.saveAll(toSave), this.canRecordRepository.saveAll(records)]);
+    this.logger.log(`flushed ${toSave.length} raw frames`);
   }
 
   #parseFrames(body: Buffer, baseTs: number, deviceId: string): CanRaw[] {
