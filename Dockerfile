@@ -6,13 +6,12 @@ WORKDIR /usr/app
 
 FROM base AS deps
 COPY pnpm-lock.yaml package.json ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod
 
 FROM base AS build
 COPY --from=deps /usr/app/node_modules ./node_modules
 COPY . .
 RUN pnpm run build
-RUN pnpm prune --prod
 
 FROM base AS runner
 
