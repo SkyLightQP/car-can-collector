@@ -13,6 +13,12 @@ export class CanRecordRepository {
 
   async saveAll(records: CanRecord[]): Promise<void> {
     if (records.length === 0) return;
-    await this.repo.insert(records.map((r) => CanRecordEntity.fromDomain(r)));
+    await this.repo
+      .createQueryBuilder()
+      .insert()
+      .into(CanRecordEntity)
+      .values(records.map((r) => CanRecordEntity.fromDomain(r)))
+      .orIgnore()
+      .execute();
   }
 }

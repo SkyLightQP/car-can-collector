@@ -12,6 +12,12 @@ export class CanRawRepository {
   ) {}
 
   async saveAll(frames: CanRaw[]): Promise<void> {
-    await this.repo.insert(frames.map((frame) => CanRawEntity.fromDomain(frame)));
+    await this.repo
+      .createQueryBuilder()
+      .insert()
+      .into(CanRawEntity)
+      .values(frames.map((frame) => CanRawEntity.fromDomain(frame)))
+      .orIgnore()
+      .execute();
   }
 }
