@@ -6,7 +6,7 @@ WORKDIR /usr/app
 
 FROM base AS deps
 COPY pnpm-lock.yaml package.json ./
-RUN pnpm install --frozen-lockfile --ignore-scripts=false
+RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 COPY --from=deps /usr/app/node_modules ./node_modules
