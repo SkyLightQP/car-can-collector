@@ -21,4 +21,15 @@ export class CanRecordRepository {
       .orIgnore()
       .execute();
   }
+
+  async findLatestPerDevice(): Promise<CanRecord[]> {
+    const entities = await this.repo
+      .createQueryBuilder('r')
+      .distinctOn(['r.deviceId'])
+      .orderBy('r.deviceId', 'ASC')
+      .addOrderBy('r.timestamp', 'DESC')
+      .getMany();
+
+    return entities.map((e) => e.toDomain());
+  }
 }
