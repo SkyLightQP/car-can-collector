@@ -8,47 +8,42 @@ import type {
   WeeklyTrips,
   WeeklyTripsInput,
 } from '@app/trpc/schemas/trips.schema';
-import { addDays, dateRange, kstMidnight, kstToday, mondayOf } from './kst-date';
-import { averageSpeedKph, round1, toMinutes } from './driving-stats';
-
-function fillEmptyBuckets(bucketKeys: string[], rows: DrivingBucketRow[]): DrivingBucketRow[] {
-  const rowByBucket = new Map(rows.map((row) => [row.bucket, row]));
-  return bucketKeys.map(
-    (bucket) => rowByBucket.get(bucket) ?? { bucket, distanceKm: 0, maxSpeedKph: 0, drivingSeconds: 0 }
-  );
-}
+import { KstDate } from '@app/domain/kst-date';
+import { DrivingStats } from '@app/domain/driving-stats';
 
 @Injectable()
 export class TripQueryService implements TripQueries {
   constructor(private readonly canRecordRepository: CanRecordRepository) {}
 
   async getDaily({ from, to }: DailyTripsInput): Promise<DailyTrips> {
-    const rows = await this.canRecordRepository.aggregateDriving(kstMidnight(from), kstMidnight(addDays(to, 1)), 'day');
+    const firstDay = KstDate.from(from);
+    const lastDay = KstDate.from(to);
+    const rows = await this.canRecordRepository.aggregateDriving(firstDay.startsAt, lastDay.addDays(1).startsAt, 'day');
 
-    return fillEmptyBuckets(dateRange(from, to), rows).map((day) => ({
-      date: day.bucket,
-      distanceKm: round1(day.distanceKm),
-      avgSpeedKph: averageSpeedKph(day.distanceKm, day.drivingSeconds),
-      maxSpeedKph: round1(day.maxSpeedKph),
-      drivingMinutes: toMinutes(day.drivingSeconds),
+    return attachDrivingStats(firstDay.datesThrough(lastDay), rows).map(({ period, stats }) => ({
+      date: period.value,
+      distanceKm: stats.distanceKm,
+      avgSpeedKph: stats.avgSpeedKph,
+      maxSpeedKph: stats.maxSpeedKph,
+      drivingMinutes: stats.drivingMinutes,
     }));
   }
 
   async getWeekly({ weeks }: WeeklyTripsInput): Promise<WeeklyTrips> {
-    const thisWeek = mondayOf(kstToday(new Date()));
-    const firstWeek = addDays(thisWeek, -7 * (weeks - 1));
+    const thisWeek = KstDate.today(new Date()).weekStart;
+    const firstWeek = thisWeek.addDays(-7 * (weeks - 1));
     const rows = await this.canRecordRepository.aggregateDriving(
-      kstMidnight(firstWeek),
-      kstMidnight(addDays(thisWeek, 7)),
+      firstWeek.startsAt,
+      thisWeek.addDays(7).startsAt,
       'week'
     );
-    const weekStarts = Array.from({ length: weeks }, (_, i) => addDays(firstWeek, 7 * i));
+    const weekStarts = Array.from({ length: weeks }, (_, i) => firstWeek.addDays(7 * i));
 
-    return fillEmptyBuckets(weekStarts, rows).map((week) => ({
-      weekStart: week.bucket,
-      distanceKm: round1(week.distanceKm),
-      avgSpeedKph: averageSpeedKph(week.distanceKm, week.drivingSeconds),
-      drivingMinutes: toMinutes(week.drivingSeconds),
+    return attachDrivingStats(weekStarts, rows).map(({ period, stats }) => ({
+      weekStart: period.value,
+      distanceKm: stats.distanceKm,
+      avgSpeedKph: stats.avgSpeedKph,
+      drivingMinutes: stats.drivingMinutes,
     }));
   }
 
@@ -56,13 +51,22 @@ export class TripQueryService implements TripQueries {
     const session = await this.canRecordRepository.findLastSession();
     if (!session) return null;
 
+    const stats = DrivingStats.from(session);
     return {
       startedAt: session.startedAt.toISOString(),
       endedAt: session.endedAt.toISOString(),
-      distanceKm: round1(session.distanceKm),
-      maxSpeedKph: round1(session.maxSpeedKph),
-      avgSpeedKph: averageSpeedKph(session.distanceKm, session.drivingSeconds),
-      durationMinutes: toMinutes(session.drivingSeconds),
+      distanceKm: stats.distanceKm,
+      maxSpeedKph: stats.maxSpeedKph,
+      avgSpeedKph: stats.avgSpeedKph,
+      durationMinutes: stats.drivingMinutes,
     };
   }
+}
+
+function attachDrivingStats(periods: KstDate[], rows: DrivingBucketRow[]): { period: KstDate; stats: DrivingStats }[] {
+  const rowByBucket = new Map(rows.map((row) => [row.bucket, row]));
+  return periods.map((period) => {
+    const row = rowByBucket.get(period.value);
+    return { period, stats: row ? DrivingStats.from(row) : DrivingStats.empty() };
+  });
 }

@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CanRecordRepository, type DailyVoltageRow } from '@infrastructure/repository/can-record.repository';
 import type { VehicleQueries } from '@app/trpc/routers/vehicle.router';
 import type { BatteryHistory, BatteryHistoryInput, VehicleStatus } from '@app/trpc/schemas/vehicle.schema';
-import { addDays, dateRange, kstMidnight, kstToday } from './kst-date';
-import { round1, round2 } from './driving-stats';
+import { KstDate } from '@app/domain/kst-date';
 
 @Injectable()
 export class VehicleQueryService implements VehicleQueries {
@@ -16,8 +15,8 @@ export class VehicleQueryService implements VehicleQueries {
     return {
       measuredAt: record.timestamp.toISOString(),
       engineOn: record.engineRpm > 0,
-      odometerKm: round1(record.odometerKm),
-      batteryVoltageV: record.batteryVoltageV > 0 ? round1(record.batteryVoltageV) : null,
+      odometerKm: roundTo(record.odometerKm, 1),
+      batteryVoltageV: record.batteryVoltageV > 0 ? roundTo(record.batteryVoltageV, 1) : null,
       tires: {
         frontLeft: record.tpmsFlPsi,
         frontRight: record.tpmsFrPsi,
@@ -30,18 +29,23 @@ export class VehicleQueryService implements VehicleQueries {
   }
 
   async getBatteryHistory({ days }: BatteryHistoryInput): Promise<BatteryHistory> {
-    const to = kstToday(new Date());
-    const from = addDays(to, -(days - 1));
-    const rows = await this.canRecordRepository.findDailyRunningVoltage(kstMidnight(from), kstMidnight(addDays(to, 1)));
+    const today = KstDate.today(new Date());
+    const firstDay = today.addDays(-(days - 1));
+    const rows = await this.canRecordRepository.findDailyRunningVoltage(firstDay.startsAt, today.addDays(1).startsAt);
 
-    return fillMissingDays(dateRange(from, to), rows).map((day) => ({
-      date: day.date,
-      voltageV: day.voltageV === null ? null : round2(day.voltageV),
+    return attachDailyVoltage(firstDay.datesThrough(today), rows).map(({ day, voltageV }) => ({
+      date: day.value,
+      voltageV: voltageV === null ? null : roundTo(voltageV, 2),
     }));
   }
 }
 
-function fillMissingDays(dates: string[], rows: DailyVoltageRow[]): { date: string; voltageV: number | null }[] {
+function attachDailyVoltage(days: KstDate[], rows: DailyVoltageRow[]): { day: KstDate; voltageV: number | null }[] {
   const voltageByDate = new Map(rows.map((row) => [row.date, row.voltageV]));
-  return dates.map((date) => ({ date, voltageV: voltageByDate.get(date) ?? null }));
+  return days.map((day) => ({ day, voltageV: voltageByDate.get(day.value) ?? null }));
+}
+
+function roundTo(value: number, fractionDigits: number): number {
+  const scale = 10 ** fractionDigits;
+  return Math.round(value * scale) / scale;
 }
