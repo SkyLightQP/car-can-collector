@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** trips.daily 한 번에 조회할 수 있는 최대 일수(양 끝 포함). */
 export const DAILY_TRIPS_MAX_DAYS = 92;
 
 export const dailyTripsInputSchema = z
@@ -48,7 +47,6 @@ export type WeeklyTripsInput = z.infer<typeof weeklyTripsInputSchema>;
 
 export const weeklyTripsSchema = z.array(
   z.object({
-    /** 주 시작일(KST 월요일) */
     weekStart: z.iso.date(),
     distanceKm: z.number(),
     avgSpeedKph: z.number(),

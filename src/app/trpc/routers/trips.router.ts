@@ -12,7 +12,6 @@ import {
   weeklyTripsSchema,
 } from '../schemas/trips.schema';
 
-/** trips 라우터가 의존하는 조회 기능. 구현은 TripQueryService. */
 export interface TripQueries {
   getDaily(input: DailyTripsInput): Promise<DailyTrips>;
   getLast(): Promise<LastTrip | null>;
