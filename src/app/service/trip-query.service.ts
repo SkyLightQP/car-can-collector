@@ -11,7 +11,12 @@ import type {
 import { addDays, dateRange, kstMidnight, kstToday, mondayOf } from './kst-date';
 import { averageSpeedKph, round1, toMinutes } from './driving-stats';
 
-const EMPTY_BUCKET: Omit<DrivingBucketRow, 'bucket'> = { distanceKm: 0, maxSpeedKph: 0, drivingSeconds: 0 };
+function fillEmptyBuckets(bucketKeys: string[], rows: DrivingBucketRow[]): DrivingBucketRow[] {
+  const rowByBucket = new Map(rows.map((row) => [row.bucket, row]));
+  return bucketKeys.map(
+    (bucket) => rowByBucket.get(bucket) ?? { bucket, distanceKm: 0, maxSpeedKph: 0, drivingSeconds: 0 }
+  );
+}
 
 @Injectable()
 export class TripQueryService implements TripQueries {
@@ -19,18 +24,14 @@ export class TripQueryService implements TripQueries {
 
   async getDaily({ from, to }: DailyTripsInput): Promise<DailyTrips> {
     const rows = await this.canRecordRepository.aggregateDriving(kstMidnight(from), kstMidnight(addDays(to, 1)), 'day');
-    const rowByDate = new Map(rows.map((row) => [row.bucket, row]));
 
-    return dateRange(from, to).map((date) => {
-      const row = rowByDate.get(date) ?? EMPTY_BUCKET;
-      return {
-        date,
-        distanceKm: round1(row.distanceKm),
-        avgSpeedKph: averageSpeedKph(row.distanceKm, row.drivingSeconds),
-        maxSpeedKph: round1(row.maxSpeedKph),
-        drivingMinutes: toMinutes(row.drivingSeconds),
-      };
-    });
+    return fillEmptyBuckets(dateRange(from, to), rows).map((day) => ({
+      date: day.bucket,
+      distanceKm: round1(day.distanceKm),
+      avgSpeedKph: averageSpeedKph(day.distanceKm, day.drivingSeconds),
+      maxSpeedKph: round1(day.maxSpeedKph),
+      drivingMinutes: toMinutes(day.drivingSeconds),
+    }));
   }
 
   async getWeekly({ weeks }: WeeklyTripsInput): Promise<WeeklyTrips> {
@@ -41,17 +42,14 @@ export class TripQueryService implements TripQueries {
       kstMidnight(addDays(thisWeek, 7)),
       'week'
     );
-    const rowByWeek = new Map(rows.map((row) => [row.bucket, row]));
+    const weekStarts = Array.from({ length: weeks }, (_, i) => addDays(firstWeek, 7 * i));
 
-    return Array.from({ length: weeks }, (_, i) => addDays(firstWeek, 7 * i)).map((weekStart) => {
-      const row = rowByWeek.get(weekStart) ?? EMPTY_BUCKET;
-      return {
-        weekStart,
-        distanceKm: round1(row.distanceKm),
-        avgSpeedKph: averageSpeedKph(row.distanceKm, row.drivingSeconds),
-        drivingMinutes: toMinutes(row.drivingSeconds),
-      };
-    });
+    return fillEmptyBuckets(weekStarts, rows).map((week) => ({
+      weekStart: week.bucket,
+      distanceKm: round1(week.distanceKm),
+      avgSpeedKph: averageSpeedKph(week.distanceKm, week.drivingSeconds),
+      drivingMinutes: toMinutes(week.drivingSeconds),
+    }));
   }
 
   async getLast(): Promise<LastTrip | null> {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
+import { CanRecordRepository, type DailyVoltageRow } from '@infrastructure/repository/can-record.repository';
 import type { VehicleQueries } from '@app/trpc/routers/vehicle.router';
 import type { BatteryHistory, BatteryHistoryInput, VehicleStatus } from '@app/trpc/schemas/vehicle.schema';
 import { addDays, dateRange, kstMidnight, kstToday } from './kst-date';
@@ -33,11 +33,15 @@ export class VehicleQueryService implements VehicleQueries {
     const to = kstToday(new Date());
     const from = addDays(to, -(days - 1));
     const rows = await this.canRecordRepository.findDailyRestingVoltage(kstMidnight(from), kstMidnight(addDays(to, 1)));
-    const voltageByDate = new Map(rows.map((row) => [row.date, row.voltageV]));
 
-    return dateRange(from, to).map((date) => {
-      const voltage = voltageByDate.get(date);
-      return { date, voltageV: voltage === undefined ? null : round2(voltage) };
-    });
+    return fillMissingDays(dateRange(from, to), rows).map((day) => ({
+      date: day.date,
+      voltageV: day.voltageV === null ? null : round2(day.voltageV),
+    }));
   }
+}
+
+function fillMissingDays(dates: string[], rows: DailyVoltageRow[]): { date: string; voltageV: number | null }[] {
+  const voltageByDate = new Map(rows.map((row) => [row.date, row.voltageV]));
+  return dates.map((date) => ({ date, voltageV: voltageByDate.get(date) ?? null }));
 }
