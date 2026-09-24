@@ -17,7 +17,7 @@ export class VehicleQueryService implements VehicleQueries {
       measuredAt: record.timestamp.toISOString(),
       engineOn: record.engineRpm > 0,
       odometerKm: round1(record.odometerKm),
-      batteryVoltageV: round1(record.batteryVoltageV),
+      batteryVoltageV: record.batteryVoltageV > 0 ? round1(record.batteryVoltageV) : null,
       tires: {
         frontLeft: record.tpmsFlPsi,
         frontRight: record.tpmsFrPsi,
@@ -32,7 +32,7 @@ export class VehicleQueryService implements VehicleQueries {
   async getBatteryHistory({ days }: BatteryHistoryInput): Promise<BatteryHistory> {
     const to = kstToday(new Date());
     const from = addDays(to, -(days - 1));
-    const rows = await this.canRecordRepository.findDailyRestingVoltage(kstMidnight(from), kstMidnight(addDays(to, 1)));
+    const rows = await this.canRecordRepository.findDailyRunningVoltage(kstMidnight(from), kstMidnight(addDays(to, 1)));
 
     return fillMissingDays(dateRange(from, to), rows).map((day) => ({
       date: day.date,

@@ -3,7 +3,7 @@ export declare const vehicleStatusSchema: z.ZodObject<{
     measuredAt: z.ZodISODateTime;
     engineOn: z.ZodBoolean;
     odometerKm: z.ZodNumber;
-    batteryVoltageV: z.ZodNumber;
+    batteryVoltageV: z.ZodNullable<z.ZodNumber>;
     tires: z.ZodObject<{
         frontLeft: z.ZodNullable<z.ZodNumber>;
         frontRight: z.ZodNullable<z.ZodNumber>;

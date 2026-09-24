@@ -22,7 +22,7 @@ export declare function createAppRouter(deps: AppRouterDeps): import("@trpc/serv
                 measuredAt: string;
                 engineOn: boolean;
                 odometerKm: number;
-                batteryVoltageV: number;
+                batteryVoltageV: number | null;
                 tires: {
                     frontLeft: number | null;
                     frontRight: number | null;

@@ -25,9 +25,9 @@ const recordInput: CanRecordInput = {
 
 function setup() {
   const findLatest = jest.fn().mockResolvedValue(CanRecord.from(recordInput));
-  const findDailyRestingVoltage = jest.fn().mockResolvedValue([]);
-  const repository = { findLatest, findDailyRestingVoltage } as unknown as CanRecordRepository;
-  return { service: new VehicleQueryService(repository), findLatest, findDailyRestingVoltage };
+  const findDailyRunningVoltage = jest.fn().mockResolvedValue([]);
+  const repository = { findLatest, findDailyRunningVoltage } as unknown as CanRecordRepository;
+  return { service: new VehicleQueryService(repository), findLatest, findDailyRunningVoltage };
 }
 
 function useNow(iso: string) {
@@ -59,6 +59,13 @@ describe('VehicleQueryService', () => {
       });
     });
 
+    it('전압이 0(미수신)이면 batteryVoltageV 는 null', async () => {
+      const { service, findLatest } = setup();
+      findLatest.mockResolvedValue(CanRecord.from({ ...recordInput, batteryVoltageV: 0 }));
+      const status = await service.getStatus();
+      expect(status?.batteryVoltageV).toBeNull();
+    });
+
     it('engine_on 이 기본값 false 로 남은 레코드라도 RPM 이 0보다 크면 시동 중이다', async () => {
       const { service, findLatest } = setup();
       findLatest.mockResolvedValue(CanRecord.from({ ...recordInput, engineRpm: 1362.5, engineOn: false }));
@@ -68,17 +75,17 @@ describe('VehicleQueryService', () => {
   });
 
   describe('getBatteryHistory', () => {
-    it('KST 오늘 포함 days 일을 조회하고 빈 날은 null 로 채운다', async () => {
+    it('KST 오늘 포함 days 일의 시동 중 평균 전압을 조회하고 빈 날은 null 로 채운다', async () => {
       useNow('2026-09-24T15:30:00Z');
-      const { service, findDailyRestingVoltage } = setup();
-      findDailyRestingVoltage.mockResolvedValue([{ date: '2026-09-24', voltageV: 12.43333 }]);
+      const { service, findDailyRunningVoltage } = setup();
+      findDailyRunningVoltage.mockResolvedValue([{ date: '2026-09-24', voltageV: 12.43333 }]);
 
       await expect(service.getBatteryHistory({ days: 3 })).resolves.toEqual([
         { date: '2026-09-23', voltageV: null },
         { date: '2026-09-24', voltageV: 12.43 },
         { date: '2026-09-25', voltageV: null },
       ]);
-      expect(findDailyRestingVoltage).toHaveBeenCalledWith(
+      expect(findDailyRunningVoltage).toHaveBeenCalledWith(
         new Date('2026-09-22T15:00:00.000Z'),
         new Date('2026-09-25T15:00:00.000Z')
       );

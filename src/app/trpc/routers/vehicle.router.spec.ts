@@ -33,6 +33,12 @@ describe('vehicle router', () => {
       await expect(caller.status()).resolves.toBeNull();
     });
 
+    it('전압을 아직 수신하지 못했으면 batteryVoltageV 는 null 로 반환한다', async () => {
+      const { caller, getStatus } = setup();
+      getStatus.mockResolvedValue({ ...status, batteryVoltageV: null });
+      await expect(caller.status()).resolves.toMatchObject({ batteryVoltageV: null });
+    });
+
     it('출력 스키마를 어기면 INTERNAL_SERVER_ERROR 로 실패한다', async () => {
       const { caller, getStatus } = setup();
       getStatus.mockResolvedValue({ ...status, measuredAt: 'not-a-date' });

@@ -4,7 +4,7 @@ export const vehicleStatusSchema = z.object({
   measuredAt: z.iso.datetime(),
   engineOn: z.boolean(),
   odometerKm: z.number(),
-  batteryVoltageV: z.number(),
+  batteryVoltageV: z.number().nullable(),
   tires: z.object({
     frontLeft: z.number().nullable(),
     frontRight: z.number().nullable(),

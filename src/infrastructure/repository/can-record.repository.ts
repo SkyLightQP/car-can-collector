@@ -63,7 +63,7 @@ export class CanRecordRepository {
     return entity?.toDomain() ?? null;
   }
 
-  async findDailyRestingVoltage(from: Date, to: Date): Promise<DailyVoltageRow[]> {
+  async findDailyRunningVoltage(from: Date, to: Date): Promise<DailyVoltageRow[]> {
     return this.repo.query<DailyVoltageRow[]>(
       `
       SELECT to_char((time AT TIME ZONE 'Asia/Seoul')::date, 'YYYY-MM-DD') AS "date",
@@ -71,7 +71,7 @@ export class CanRecordRepository {
       FROM can_record
       WHERE time >= $1::timestamptz
         AND time < $2::timestamptz
-        AND engine_rpm = 0
+        AND engine_rpm > 0
         AND battery_voltage_v > 0
       GROUP BY 1
       ORDER BY 1

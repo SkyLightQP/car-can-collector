@@ -15,7 +15,7 @@ export declare function createVehicleRouter(queries: VehicleQueries): import("@t
             measuredAt: string;
             engineOn: boolean;
             odometerKm: number;
-            batteryVoltageV: number;
+            batteryVoltageV: number | null;
             tires: {
                 frontLeft: number | null;
                 frontRight: number | null;
