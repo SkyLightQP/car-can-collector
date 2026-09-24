@@ -1,10 +1,11 @@
 # Car Can Collector
 
-<center>
+<br/>
+<div align="center">
 <img src="./docs/logo.png" width="128">
     
 <b>CAN 통신 기반 차량 운행 정보 수집기</b>
-</center>
+</div>
 
 
 ## 하드웨어 준비
