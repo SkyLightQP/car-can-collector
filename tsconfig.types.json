@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "incremental": false,
+    "sourceMap": false,
+    "removeComments": false,
+    "rootDir": "./src/app/trpc",
+    "outDir": "./types/dist"
+  },
+  "files": ["src/app/trpc/index.ts"]
+}

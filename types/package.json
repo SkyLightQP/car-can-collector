@@ -1,0 +1,16 @@
+{
+  "name": "@car-can/collector-types",
+  "version": "0.0.1",
+  "private": true,
+  "description": "car-can-collector tRPC AppRouter 타입. `pnpm run build:types` 로 dist 를 다시 만든다.",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "peerDependencies": {
+    "@trpc/server": "^11.19.0",
+    "zod": "^4.6.5"
+  }
+}
