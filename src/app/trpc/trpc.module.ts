@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ServiceModule } from '@app/service/service.module';
-import { VehicleQueryService } from '@app/service/vehicle-query.service';
-import { TripQueryService } from '@app/service/trip-query.service';
+import { VehicleQueryService } from '@app/service/query/vehicle-query.service';
+import { TripQueryService } from '@app/service/query/trip-query.service';
 import { createAppRouter } from './app.router';
 
 export const APP_ROUTER = Symbol('APP_ROUTER');
