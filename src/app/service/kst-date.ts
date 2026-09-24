@@ -14,11 +14,8 @@ export function kstMidnight(date: string): Date {
 }
 
 export function dateRange(from: string, to: string): string[] {
-  const dates: string[] = [];
-  for (let date = from; date <= to; date = addDays(date, 1)) {
-    dates.push(date);
-  }
-  return dates;
+  const dayCount = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS + 1;
+  return Array.from({ length: Math.max(dayCount, 0) }, (_, offset) => addDays(from, offset));
 }
 
 export function mondayOf(date: string): string {

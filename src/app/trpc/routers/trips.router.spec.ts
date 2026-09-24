@@ -53,6 +53,23 @@ describe('trips router', () => {
       });
     });
 
+    it.each([
+      ['9999-12-31', '9999-12-31'],
+      ['0000-01-01', '0000-01-01'],
+      ['1999-12-31', '1999-12-31'],
+      ['2100-01-01', '2100-01-01'],
+    ])('지원 범위 밖 연도 %s ~ %s 는 BAD_REQUEST 로 거절한다', async (from, to) => {
+      const { caller, getDaily } = setup();
+      await expect(caller.daily({ from, to })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(getDaily).not.toHaveBeenCalled();
+    });
+
+    it('지원 범위 경계(2000-01-01, 2099-12-31)는 허용한다', async () => {
+      const { caller } = setup();
+      await expect(caller.daily({ from: '2000-01-01', to: '2000-01-01' })).resolves.toEqual([]);
+      await expect(caller.daily({ from: '2099-12-31', to: '2099-12-31' })).resolves.toEqual([]);
+    });
+
     it.each(['2026-9-1', '2026-02-30', '2026-13-01', '2026-09-01T00:00:00Z'])(
       '잘못된 날짜 %p 는 BAD_REQUEST 로 거절한다',
       async (from) => {
