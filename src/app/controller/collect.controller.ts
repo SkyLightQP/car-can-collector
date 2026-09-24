@@ -7,7 +7,7 @@ const FRAME_SIZE = 13;
 
 @Controller('can-collector')
 @UseGuards(ApiKeyGuard)
-export class CanCollectorController {
+export class CollectController {
   constructor(private readonly service: CanCollectorService) {}
 
   @Post('collect')
