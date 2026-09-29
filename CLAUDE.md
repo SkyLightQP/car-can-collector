@@ -21,6 +21,7 @@ pnpm run start:prod     # run compiled dist/main.js
 # build
 pnpm run build          # nest build -> dist/
 pnpm run build:types    # tRPC AppRouter 타입 -> types/dist (car-can-dashboard 용, 커밋 대상)
+pnpm run sync:types     # build:types 후 types/dist 를 ../car-can-dashboard/app/types/collector 로 복사
 
 # lint / format
 pnpm run lint           # eslint --fix over src,apps,libs,test
@@ -130,8 +131,9 @@ car-can-dashboard 는 `/trpc` 의 tRPC 조회 API(`vehicle.status`, `vehicle.bat
   5분 초과 공백으로 세션 분할, 거리 = odometer MAX - MIN(0 제외), 주행 시간 = 5분 이하 간격의 합.
   `engine_on` 컬럼은 추가 마이그레이션 이전 행이 기본값 FALSE 로 남아 있어 집계에 쓰지 않는다.
 - `src/app/trpc/index.ts` 에서 도달 가능한 파일은 상대 경로와 `zod`/`@trpc/server` 만 import 해야 한다.
-  `pnpm run build:types` 가 여기서 `types/dist` 를 만들고, dashboard 는 `link:../car-can-collector/types` 로 참조한다.
-  라우터/스키마를 바꾸면 `build:types` 를 다시 돌려 `types/dist` 를 함께 커밋한다.
+  `pnpm run build:types` 가 여기서 `types/dist` 를 만들고, `pnpm run sync:types` 가 이를 dashboard 의
+  `app/types/collector/` 로 복사한다(대상 경로는 `DASHBOARD_TYPES_DIR` 로 바꿀 수 있다). dashboard 는 `@/types/collector` 로 import 한다.
+  라우터/스키마를 바꾸면 `sync:types` 를 다시 돌려 collector 의 `types/dist` 와 dashboard 의 복사본을 각각 커밋한다.
 - 인증 없음(`publicProcedure`). 로그인 도입 시 `trpc.context.ts` 의 `createContext` 에서 처리한다.
 
 ### Auth
