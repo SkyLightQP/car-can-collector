@@ -8,6 +8,7 @@ const MIN_SECRET_LENGTH = 32;
 export interface BetterAuthSettings {
   secret: string;
   baseURL: string;
+  trustedOrigins: string[];
 }
 
 export function readBetterAuthSettings(config: ConfigService): BetterAuthSettings {
@@ -15,7 +16,14 @@ export function readBetterAuthSettings(config: ConfigService): BetterAuthSetting
   if (secret.length < MIN_SECRET_LENGTH) {
     throw new Error(`BETTER_AUTH_SECRET 는 ${MIN_SECRET_LENGTH}자 이상이어야 한다`);
   }
-  return { secret, baseURL: config.getOrThrow<string>('BETTER_AUTH_URL') };
+
+  const trustedOrigins = config
+    .getOrThrow<string>('TRUSTED_ORIGINS')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return { secret, baseURL: config.getOrThrow<string>('BETTER_AUTH_URL'), trustedOrigins };
 }
 
 const timestampFields = { createdAt: 'created_at', updatedAt: 'updated_at' };
@@ -24,6 +32,7 @@ export function createBetterAuth(pool: Pool, settings: BetterAuthSettings) {
   return betterAuth({
     secret: settings.secret,
     baseURL: settings.baseURL,
+    trustedOrigins: settings.trustedOrigins,
     basePath: '/auth',
     database: pool,
     emailAndPassword: { enabled: true, disableSignUp: true },

@@ -69,6 +69,7 @@
 | `API_KEY` | ESP32 인증 키. 펌웨어 `secrets.h`의 `API_TOKEN`과 같은 값이어야 합니다 |
 | `BETTER_AUTH_SECRET` | 로그인 토큰 서명 키. 32자 이상의 랜덤 문자열이며, 없으면 서버가 시작되지 않습니다 |
 | `BETTER_AUTH_URL` | 외부에서 접속하는 서버 주소 (예: `https://collector.example.com`) |
+| `TRUSTED_ORIGINS` | 로그인을 요청할 수 있는 대시보드 주소. 여러 개면 쉼표로 구분합니다 (예: `https://dash.example.com`) |
 | `PORT` | 선택. 서버 포트이며 기본값은 3000입니다 |
 
 ### 시작하기
