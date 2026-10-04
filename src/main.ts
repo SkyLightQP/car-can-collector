@@ -10,13 +10,6 @@ import { APP_ROUTER } from '@app/trpc/trpc.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
-  app.use(
-    bodyParser.raw({
-      type: 'application/octet-stream',
-      limit: '10mb',
-    })
-  );
-
   const trpcLogger = new Logger('tRPC');
   app.use(
     '/trpc',
@@ -31,6 +24,13 @@ async function bootstrap() {
           trpcLogger.warn(message);
         }
       },
+    })
+  );
+
+  app.use(
+    bodyParser.raw({
+      type: 'application/octet-stream',
+      limit: '10mb',
     })
   );
 
