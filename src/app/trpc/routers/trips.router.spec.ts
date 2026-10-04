@@ -1,5 +1,5 @@
 import { createCallerFactory } from '../trpc';
-import type { LastTrip } from '../schemas/trips.schema';
+import type { LastTrip } from '@app/trpc';
 import { createTripsRouter, type TripQueries } from './trips.router';
 
 const user = { id: 'user-1', email: 'me@example.com', name: '나' };

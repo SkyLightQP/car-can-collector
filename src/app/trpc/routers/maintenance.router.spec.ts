@@ -4,7 +4,7 @@ import type {
   MaintenanceAlerts,
   MaintenanceRecordView,
   MaintenanceScheduleView,
-} from '../schemas/maintenance.schema';
+} from '@app/trpc';
 import { createMaintenanceRouter, type MaintenanceOperations } from './maintenance.router';
 
 const user = { id: 'user-1', email: 'me@example.com', name: '나' };

@@ -1,5 +1,5 @@
 import { createCallerFactory } from '../trpc';
-import type { VehicleStatus } from '../schemas/vehicle.schema';
+import type { VehicleStatus } from '@app/trpc';
 import { createVehicleRouter, type VehicleQueries } from './vehicle.router';
 
 const user = { id: 'user-1', email: 'me@example.com', name: '나' };
