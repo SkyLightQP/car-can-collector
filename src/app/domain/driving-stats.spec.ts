@@ -2,17 +2,20 @@ import { DrivingStats } from './driving-stats';
 
 describe('DrivingStats', () => {
   it('REAL 컬럼의 부동소수 오차를 정리해 거리와 최고 속도를 소수 첫째 자리로 반환한다', () => {
-    const stats = DrivingStats.from({ distanceKm: 42.29998779296875, maxSpeedKph: 91.99999, drivingSeconds: 4020 });
+    const stats = DrivingStats.from({
+      distanceKm: 42.29998779296875,
+      maxSpeedKph: 91.99999,
+      avgSpeedKph: 67.60069545059403,
+      drivingSeconds: 4020,
+    });
     expect(stats.distanceKm).toBe(42.3);
     expect(stats.maxSpeedKph).toBe(92);
+    expect(stats.avgSpeedKph).toBe(67.6);
   });
 
-  it('평균 속도 = 거리 / 주행 시간(h)', () => {
-    expect(DrivingStats.from({ distanceKm: 42.3, maxSpeedKph: 92, drivingSeconds: 67 * 60 }).avgSpeedKph).toBe(37.9);
-  });
-
-  it('주행 시간이 0이면 평균 속도는 0', () => {
-    expect(DrivingStats.from({ distanceKm: 10, maxSpeedKph: 5, drivingSeconds: 0 }).avgSpeedKph).toBe(0);
+  it('평균 속도는 거리와 무관하게 정차를 뺀 차속 평균을 쓴다', () => {
+    const stats = DrivingStats.from({ distanceKm: 12054.5, maxSpeedKph: 132, avgSpeedKph: 61.8, drivingSeconds: 6094 });
+    expect(stats.avgSpeedKph).toBe(61.8);
   });
 
   it.each([
@@ -20,7 +23,9 @@ describe('DrivingStats', () => {
     [89, 1],
     [29, 0],
   ])('주행 %p초는 %p분', (drivingSeconds, minutes) => {
-    expect(DrivingStats.from({ distanceKm: 0, maxSpeedKph: 0, drivingSeconds }).drivingMinutes).toBe(minutes);
+    expect(DrivingStats.from({ distanceKm: 0, maxSpeedKph: 0, avgSpeedKph: 0, drivingSeconds }).drivingMinutes).toBe(
+      minutes
+    );
   });
 
   it('empty 는 모든 값이 0', () => {

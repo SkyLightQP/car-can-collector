@@ -15,6 +15,7 @@ export interface DrivingBucketRow {
   bucket: string;
   distanceKm: number;
   maxSpeedKph: number;
+  avgSpeedKph: number;
   drivingSeconds: number;
 }
 
@@ -23,6 +24,7 @@ export interface DrivingSessionRow {
   endedAt: Date;
   distanceKm: number;
   maxSpeedKph: number;
+  avgSpeedKph: number;
   drivingSeconds: number;
 }
 
@@ -102,7 +104,8 @@ export class CanRecordRepository {
         SELECT date_trunc($3::text, time AT TIME ZONE 'Asia/Seoul') AS bucket,
                MAX(odometer_km) FILTER (WHERE odometer_km > 0)
                  - MIN(odometer_km) FILTER (WHERE odometer_km > 0)   AS distance_km,
-               MAX(vehicle_speed_kph)                                AS max_speed_kph
+               MAX(vehicle_speed_kph)                                AS max_speed_kph,
+               AVG(vehicle_speed_kph) FILTER (WHERE vehicle_speed_kph > 0) AS avg_speed_kph
         FROM can_record
         WHERE time >= $1::timestamptz
           AND time < $2::timestamptz
@@ -111,6 +114,7 @@ export class CanRecordRepository {
       SELECT to_char(s.bucket, 'YYYY-MM-DD')        AS "bucket",
              COALESCE(s.distance_km, 0)::float8    AS "distanceKm",
              COALESCE(s.max_speed_kph, 0)::float8  AS "maxSpeedKph",
+             COALESCE(s.avg_speed_kph, 0)::float8  AS "avgSpeedKph",
              COALESCE(d.driving_s, 0)::float8      AS "drivingSeconds"
       FROM stats s
       LEFT JOIN drive_time d ON d.bucket = s.bucket
@@ -148,6 +152,7 @@ export class CanRecordRepository {
              COALESCE(MAX(odometer_km) FILTER (WHERE odometer_km > 0)
                         - MIN(odometer_km) FILTER (WHERE odometer_km > 0), 0)::float8       AS "distanceKm",
              COALESCE(MAX(vehicle_speed_kph), 0)::float8                                    AS "maxSpeedKph",
+             COALESCE(AVG(vehicle_speed_kph) FILTER (WHERE vehicle_speed_kph > 0), 0)::float8 AS "avgSpeedKph",
              COALESCE(SUM(gap_s) FILTER (WHERE gap_s <= ${SESSION_GAP_SECONDS}), 0)::float8 AS "drivingSeconds"
       FROM last_session
       HAVING COUNT(*) > 0

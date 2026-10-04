@@ -21,12 +21,18 @@ describe('TripQueryService', () => {
     it('KST 자정 경계로 조회하고 빈 날은 0 으로 채운다', async () => {
       const { service, aggregateDriving } = setup();
       aggregateDriving.mockResolvedValue([
-        { bucket: '2026-09-02', distanceKm: 42.29998779296875, maxSpeedKph: 92, drivingSeconds: 4020 },
+        {
+          bucket: '2026-09-02',
+          distanceKm: 42.29998779296875,
+          maxSpeedKph: 92,
+          avgSpeedKph: 51.24,
+          drivingSeconds: 4020,
+        },
       ]);
 
       await expect(service.getDaily({ from: '2026-09-01', to: '2026-09-03' })).resolves.toEqual([
         { date: '2026-09-01', distanceKm: 0, avgSpeedKph: 0, maxSpeedKph: 0, drivingMinutes: 0 },
-        { date: '2026-09-02', distanceKm: 42.3, avgSpeedKph: 37.9, maxSpeedKph: 92, drivingMinutes: 67 },
+        { date: '2026-09-02', distanceKm: 42.3, avgSpeedKph: 51.2, maxSpeedKph: 92, drivingMinutes: 67 },
         { date: '2026-09-03', distanceKm: 0, avgSpeedKph: 0, maxSpeedKph: 0, drivingMinutes: 0 },
       ]);
       expect(aggregateDriving).toHaveBeenCalledWith(
@@ -36,13 +42,13 @@ describe('TripQueryService', () => {
       );
     });
 
-    it('거리는 있지만 주행 시간이 0이면 평균 속도는 0 (NaN 아님)', async () => {
+    it('odometer 거리가 튀어도 평균 속도는 차속 평균을 그대로 쓴다', async () => {
       const { service, aggregateDriving } = setup();
       aggregateDriving.mockResolvedValue([
-        { bucket: '2026-09-01', distanceKm: 0.1, maxSpeedKph: 5, drivingSeconds: 0 },
+        { bucket: '2026-09-01', distanceKm: 12054.5, maxSpeedKph: 132, avgSpeedKph: 67.6, drivingSeconds: 6094 },
       ]);
       const [day] = await service.getDaily({ from: '2026-09-01', to: '2026-09-01' });
-      expect(day.avgSpeedKph).toBe(0);
+      expect(day.avgSpeedKph).toBe(67.6);
     });
   });
 
@@ -51,12 +57,12 @@ describe('TripQueryService', () => {
       useNow('2026-09-27T14:00:00Z');
       const { service, aggregateDriving } = setup();
       aggregateDriving.mockResolvedValue([
-        { bucket: '2026-09-21', distanceKm: 100, maxSpeedKph: 110, drivingSeconds: 7200 },
+        { bucket: '2026-09-21', distanceKm: 100, maxSpeedKph: 110, avgSpeedKph: 58, drivingSeconds: 7200 },
       ]);
 
       await expect(service.getWeekly({ weeks: 2 })).resolves.toEqual([
         { weekStart: '2026-09-14', distanceKm: 0, avgSpeedKph: 0, drivingMinutes: 0 },
-        { weekStart: '2026-09-21', distanceKm: 100, avgSpeedKph: 50, drivingMinutes: 120 },
+        { weekStart: '2026-09-21', distanceKm: 100, avgSpeedKph: 58, drivingMinutes: 120 },
       ]);
       expect(aggregateDriving).toHaveBeenCalledWith(
         new Date('2026-09-13T15:00:00.000Z'),
@@ -86,6 +92,7 @@ describe('TripQueryService', () => {
         endedAt: new Date('2026-09-24T10:25:10.000Z'),
         distanceKm: 35.70001220703125,
         maxSpeedKph: 89,
+        avgSpeedKph: 42.04,
         drivingSeconds: 3570,
       });
 
@@ -94,7 +101,7 @@ describe('TripQueryService', () => {
         endedAt: '2026-09-24T10:25:10.000Z',
         distanceKm: 35.7,
         maxSpeedKph: 89,
-        avgSpeedKph: 36,
+        avgSpeedKph: 42,
         durationMinutes: 60,
       });
     });

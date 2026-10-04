@@ -1,17 +1,20 @@
 export interface DrivingStatsInput {
   distanceKm: number;
   maxSpeedKph: number;
+  avgSpeedKph: number;
   drivingSeconds: number;
 }
 
 export class DrivingStats {
   readonly #distanceKm: number;
   readonly #maxSpeedKph: number;
+  readonly #avgSpeedKph: number;
   readonly #drivingSeconds: number;
 
   private constructor(input: DrivingStatsInput) {
     this.#distanceKm = input.distanceKm;
     this.#maxSpeedKph = input.maxSpeedKph;
+    this.#avgSpeedKph = input.avgSpeedKph;
     this.#drivingSeconds = input.drivingSeconds;
   }
 
@@ -24,8 +27,7 @@ export class DrivingStats {
   }
 
   get avgSpeedKph(): number {
-    if (this.#drivingSeconds <= 0) return 0;
-    return roundToTenth(this.#distanceKm / (this.#drivingSeconds / 3600));
+    return roundToTenth(this.#avgSpeedKph);
   }
 
   get drivingMinutes(): number {
@@ -37,7 +39,7 @@ export class DrivingStats {
   }
 
   static empty(): DrivingStats {
-    return new DrivingStats({ distanceKm: 0, maxSpeedKph: 0, drivingSeconds: 0 });
+    return new DrivingStats({ distanceKm: 0, maxSpeedKph: 0, avgSpeedKph: 0, drivingSeconds: 0 });
   }
 }
 
