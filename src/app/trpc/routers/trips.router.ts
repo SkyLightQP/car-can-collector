@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc';
+import { protectedProcedure, router } from '../trpc';
 import {
   type DailyTrips,
   type DailyTripsInput,
@@ -20,12 +20,12 @@ export interface TripQueries {
 
 export function createTripsRouter(queries: TripQueries) {
   return router({
-    daily: publicProcedure
+    daily: protectedProcedure
       .input(dailyTripsInputSchema)
       .output(dailyTripsSchema)
       .query(({ input }) => queries.getDaily(input)),
-    last: publicProcedure.output(lastTripSchema.nullable()).query(() => queries.getLast()),
-    weekly: publicProcedure
+    last: protectedProcedure.output(lastTripSchema.nullable()).query(() => queries.getLast()),
+    weekly: protectedProcedure
       .input(weeklyTripsInputSchema)
       .output(weeklyTripsSchema)
       .query(({ input }) => queries.getWeekly(input)),

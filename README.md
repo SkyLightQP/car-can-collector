@@ -67,6 +67,8 @@
 | `NODE_ENV` | `development`이면 SQL 로그를 출력하고 tRPC 오류 응답에 스택 트레이스를 포함합니다 |
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 접속 정보 |
 | `API_KEY` | ESP32 인증 키. 펌웨어 `secrets.h`의 `API_TOKEN`과 같은 값이어야 합니다 |
+| `BETTER_AUTH_SECRET` | 로그인 토큰 서명 키. 32자 이상의 랜덤 문자열이며, 없으면 서버가 시작되지 않습니다 |
+| `BETTER_AUTH_URL` | 외부에서 접속하는 서버 주소 (예: `https://collector.example.com`) |
 | `PORT` | 선택. 서버 포트이며 기본값은 3000입니다 |
 
 ### 시작하기
@@ -92,6 +94,34 @@ docker run -d --env-file .env -p 3000:3000 car-can-collector
 
 - 이미지는 마이그레이션을 실행하지 않습니다. 컨테이너를 띄우기 전에 `pnpm run migration:run`을 먼저 실행하세요.
 - 컨테이너 안에서 `localhost`는 컨테이너 자신을 가리킵니다. `DB_HOST`에는 DB 서버의 실제 주소를 넣으세요.
+
+### 로그인 계정 만들기
+
+대시보드 API(`/trpc`)는 로그인해야 쓸 수 있습니다. 회원가입 기능이 없으므로 계정은 DB에 직접 넣습니다.
+
+**1. 비밀번호 해시를 만듭니다.** 비밀번호는 평문이 아니라 해시로 저장해야 로그인됩니다. 프로젝트 폴더에서 실행하세요.
+
+```bash
+node -e "import('better-auth/crypto').then(m => m.hashPassword('사용할 비밀번호')).then(console.log)"
+```
+
+`abc123...:def456...` 형태의 긴 문자열이 출력됩니다.
+
+**2. DB에서 아래 SQL을 실행합니다.** `이름`, `이메일`, `해시` 를 바꿔 넣으세요.
+
+```sql
+WITH new_user AS (
+  INSERT INTO auth_user (id, name, email, email_verified)
+  VALUES (gen_random_uuid()::text, '이름', 'me@example.com', TRUE)
+  RETURNING id
+)
+INSERT INTO auth_account (id, account_id, provider_id, user_id, password)
+SELECT gen_random_uuid()::text, id, 'credential', id, '1단계에서 만든 해시' FROM new_user;
+```
+
+- 이메일은 **소문자로** 넣으세요. 로그인할 때 입력한 이메일을 소문자로 바꿔 찾기 때문에, 대문자가 섞여 있으면 로그인되지 않습니다.
+- 비밀번호를 바꾸려면 1단계로 새 해시를 만들어 `auth_account.password` 를 업데이트하세요.
+- `auth_user` 에서 계정을 지우면 그 계정의 로그인 세션도 함께 지워져 바로 로그아웃됩니다.
 
 ### tRPC 타입 생성
 

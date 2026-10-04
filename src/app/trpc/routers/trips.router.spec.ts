@@ -2,6 +2,8 @@ import { createCallerFactory } from '../trpc';
 import type { LastTrip } from '../schemas/trips.schema';
 import { createTripsRouter, type TripQueries } from './trips.router';
 
+const user = { id: 'user-1', email: 'me@example.com', name: '나' };
+
 const lastTrip: LastTrip = {
   startedAt: '2026-09-24T09:24:00.000Z',
   endedAt: '2026-09-24T10:24:00.000Z',
@@ -16,7 +18,7 @@ function setup() {
   const getLast = jest.fn().mockResolvedValue(lastTrip);
   const getWeekly = jest.fn().mockResolvedValue([]);
   const queries: TripQueries = { getDaily, getLast, getWeekly };
-  const caller = createCallerFactory(createTripsRouter(queries))({});
+  const caller = createCallerFactory(createTripsRouter(queries))({ user });
   return { caller, getDaily, getLast, getWeekly };
 }
 

@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc';
+import { protectedProcedure, router } from '../trpc';
 import {
   type BatteryHistory,
   type BatteryHistoryInput,
@@ -15,8 +15,8 @@ export interface VehicleQueries {
 
 export function createVehicleRouter(queries: VehicleQueries) {
   return router({
-    status: publicProcedure.output(vehicleStatusSchema.nullable()).query(() => queries.getStatus()),
-    batteryHistory: publicProcedure
+    status: protectedProcedure.output(vehicleStatusSchema.nullable()).query(() => queries.getStatus()),
+    batteryHistory: protectedProcedure
       .input(batteryHistoryInputSchema)
       .output(batteryHistorySchema)
       .query(({ input }) => queries.getBatteryHistory(input)),

@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { publicProcedure, router } from '../trpc';
+import { protectedProcedure, router } from '../trpc';
 import {
   type CreateMaintenanceRecordInput,
   createMaintenanceRecordInputSchema,
@@ -30,25 +30,25 @@ export interface MaintenanceOperations {
 
 export function createMaintenanceRouter(operations: MaintenanceOperations) {
   return router({
-    alerts: publicProcedure.output(maintenanceAlertsSchema).query(() => operations.getAlerts()),
+    alerts: protectedProcedure.output(maintenanceAlertsSchema).query(() => operations.getAlerts()),
     records: router({
-      list: publicProcedure.output(maintenanceRecordsSchema).query(() => operations.listRecords()),
-      create: publicProcedure
+      list: protectedProcedure.output(maintenanceRecordsSchema).query(() => operations.listRecords()),
+      create: protectedProcedure
         .input(createMaintenanceRecordInputSchema)
         .output(maintenanceRecordSchema)
         .mutation(({ input }) => operations.createRecord(input)),
-      update: publicProcedure
+      update: protectedProcedure
         .input(updateMaintenanceRecordInputSchema)
         .output(maintenanceRecordSchema)
         .mutation(async ({ input }) => orNotFound(await operations.updateRecord(input), '정비 이력이 없다')),
-      delete: publicProcedure
+      delete: protectedProcedure
         .input(deleteMaintenanceRecordInputSchema)
         .output(deleteMaintenanceRecordInputSchema)
         .mutation(async ({ input }) => orNotFound(await operations.deleteRecord(input), '정비 이력이 없다')),
     }),
     schedules: router({
-      list: publicProcedure.output(maintenanceSchedulesSchema).query(() => operations.listSchedules()),
-      update: publicProcedure
+      list: protectedProcedure.output(maintenanceSchedulesSchema).query(() => operations.listSchedules()),
+      update: protectedProcedure
         .input(maintenanceScheduleSchema)
         .output(maintenanceScheduleSchema)
         .mutation(async ({ input }) => orNotFound(await operations.updateSchedule(input), '정비 주기 설정이 없다')),

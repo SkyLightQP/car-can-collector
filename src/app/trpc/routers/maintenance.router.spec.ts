@@ -7,6 +7,8 @@ import type {
 } from '../schemas/maintenance.schema';
 import { createMaintenanceRouter, type MaintenanceOperations } from './maintenance.router';
 
+const user = { id: 'user-1', email: 'me@example.com', name: '나' };
+
 const RECORD_ID = '3f0c9a52-8d4e-4b7a-9c61-2e5f7a1b4d90';
 
 const recordInput: CreateMaintenanceRecordInput = {
@@ -47,7 +49,7 @@ function setup() {
     listSchedules: jest.fn().mockResolvedValue([schedule]),
     updateSchedule: jest.fn().mockResolvedValue(schedule),
   } satisfies MaintenanceOperations;
-  const caller = createCallerFactory(createMaintenanceRouter(operations))({});
+  const caller = createCallerFactory(createMaintenanceRouter(operations))({ user });
   return { caller, ...operations };
 }
 

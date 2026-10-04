@@ -116,6 +116,7 @@ This is the part most likely to need careful reasoning about correctness:
   (partitioned by `time`, see the `migrations/` for `create_hypertable` calls).
 - `can_raw` PK is `(time, device_id, can_id)`; `can_record` PK is `(time, device_id)`.
 - `maintenance_record` (PK `id` uuid) and `maintenance_schedule` (PK `type`) are plain tables, not hypertables.
+- `auth_user`, `auth_session`, `auth_account`, `auth_verification` are plain tables owned by BetterAuth (schema via TypeORM migration, not the BetterAuth CLI).
 - `synchronize` is always `false` — schema changes go through TypeORM migrations only.
 - `data-source.ts` (used by the `migration:*` CLI scripts) loads `.env` directly via `dotenv` and is
   intentionally separate from `database.module.ts` (used by the running app via `ConfigService`).
@@ -140,10 +141,40 @@ car-can-dashboard 는 `/trpc` 의 tRPC API 를 쓴다. 조회: `vehicle.status`,
   `pnpm run build:types` 가 여기서 `types/dist` 를 만들고, `pnpm run sync:types` 가 이를 dashboard 의
   `app/types/collector/` 로 복사한다(대상 경로는 `DASHBOARD_TYPES_DIR` 로 바꿀 수 있다). dashboard 는 `@/types/collector` 로 import 한다.
   라우터/스키마를 바꾸면 `sync:types` 를 다시 돌려 collector 의 `types/dist` 와 dashboard 의 복사본을 각각 커밋한다.
-- 인증 없음(`publicProcedure`). `maintenance` 의 쓰기(mutation)도 공개 상태이며 의도된 결정이다. 로그인 도입 시 `trpc.context.ts` 의 `createContext` 에서 처리한다.
+- 모든 procedure 는 `protectedProcedure` 다(`publicProcedure` 없음). `createContextFactory(AuthSessionReader)` 가 요청 헤더로 `ctx.user` 를 채우고, 없으면 `UNAUTHORIZED`(401).
 
 ### Auth
 
-Single shared-secret auth: `ApiKeyGuard` checks the `X-Api-Key` header against `API_KEY` from env.
-Applied at the controller level (`@UseGuards(ApiKeyGuard)` on `CollectController`), not globally —
-`HealthController`'s `/health` is unauthenticated. The `/trpc` dashboard API is currently unauthenticated as well, including the `maintenance` mutations.
+Two independent mechanisms:
+
+- `/can-collector/collect`: `ApiKeyGuard` checks the `X-Api-Key` header against `API_KEY` from env (controller-level
+  `@UseGuards`, unchanged by BetterAuth).
+- `/trpc`: BetterAuth email/password login with DB sessions and the `bearer()` plugin. Clients sign in at
+  `POST /auth/sign-in/email`, read the `set-auth-token` response header, and send `Authorization: Bearer <token>`.
+  Sign-up is disabled. `/health` is public. BetterAuth rate limiting is disabled (`rateLimit.enabled: false`).
+
+`better-auth` is ESM-only. Only `src/infrastructure/auth/**` and `src/main.ts` may import it (loaded via Node's
+`require(esm)`); everything else depends on the `AuthSessionReader` interface so Jest never loads it.
+
+`main.ts` registration order matters: `/auth/*splat` (BetterAuth) -> `/trpc` -> `bodyParser.raw`. Both BetterAuth and
+tRPC read the raw request stream, and body-parser sets `req.body = undefined` on requests it skips.
+
+Tables `auth_user`, `auth_session`, `auth_account`, `auth_verification` (snake_case columns mapped via `modelName`/`fields`
+in `better-auth.ts`). Env: `BETTER_AUTH_SECRET` (32+ chars, required), `BETTER_AUTH_URL`.
+Accounts are created by hand in the DB (no sign-up, no script). Hash the password with BetterAuth's scrypt format first:
+
+```bash
+node -e "import('better-auth/crypto').then(m => m.hashPassword('PASSWORD')).then(console.log)"
+```
+
+```sql
+WITH new_user AS (
+  INSERT INTO auth_user (id, name, email, email_verified)
+  VALUES (gen_random_uuid()::text, 'NAME', 'EMAIL', TRUE)
+  RETURNING id
+)
+INSERT INTO auth_account (id, account_id, provider_id, user_id, password)
+SELECT gen_random_uuid()::text, id, 'credential', id, 'HASH' FROM new_user;
+```
+
+Deleting an `auth_user` row cascades to its sessions and accounts, which revokes its tokens immediately.

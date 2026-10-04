@@ -2,6 +2,8 @@ import { createCallerFactory } from '../trpc';
 import type { VehicleStatus } from '../schemas/vehicle.schema';
 import { createVehicleRouter, type VehicleQueries } from './vehicle.router';
 
+const user = { id: 'user-1', email: 'me@example.com', name: '나' };
+
 const status: VehicleStatus = {
   measuredAt: '2026-09-24T09:00:00.000Z',
   engineOn: false,
@@ -16,7 +18,7 @@ function setup() {
   const getStatus = jest.fn().mockResolvedValue(status);
   const getBatteryHistory = jest.fn().mockResolvedValue([{ date: '2026-09-24', voltageV: 12.41 }]);
   const queries: VehicleQueries = { getStatus, getBatteryHistory };
-  const caller = createCallerFactory(createVehicleRouter(queries))({});
+  const caller = createCallerFactory(createVehicleRouter(queries))({ user });
   return { caller, getStatus, getBatteryHistory };
 }
 
