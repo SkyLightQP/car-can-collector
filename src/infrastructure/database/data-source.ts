@@ -1,8 +1,6 @@
-import 'reflect-metadata';
 import path from 'node:path';
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
-import { CanRawEntity } from '@infrastructure/database/entities/can-raw.entity';
 
 config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -23,7 +21,6 @@ export default new DataSource({
   username: getEnv('DB_USERNAME'),
   password: getEnv('DB_PASSWORD'),
   database: getEnv('DB_NAME'),
-  entities: [CanRawEntity],
   migrations: [path.join(process.cwd(), 'src/infrastructure/database/migrations/*{.ts,.js}')],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
