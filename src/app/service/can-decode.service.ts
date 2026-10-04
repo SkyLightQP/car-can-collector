@@ -60,10 +60,17 @@ const DEFAULT_STATE: DeviceState = {
   batteryVoltageV: 0,
 };
 
+const STATE_EXPIRY_MS = 5 * 60 * 1000;
+
+interface DeviceSnapshot {
+  state: DeviceState;
+  lastFrameAt: Date;
+}
+
 @Injectable()
 export class CanDecodeService implements OnModuleInit {
   private readonly logger = new Logger(CanDecodeService.name);
-  private readonly deviceState = new Map<string, DeviceState>();
+  private readonly deviceSnapshots = new Map<string, DeviceSnapshot>();
 
   constructor(private readonly canRecordRepository: CanRecordRepository) {}
 
@@ -80,7 +87,10 @@ export class CanDecodeService implements OnModuleInit {
     try {
       const records = await this.canRecordRepository.findLatestPerDevice();
       for (const record of records) {
-        this.deviceState.set(record.deviceId, CanDecodeService.toDeviceState(record));
+        this.deviceSnapshots.set(record.deviceId, {
+          state: CanDecodeService.toDeviceState(record),
+          lastFrameAt: record.timestamp,
+        });
       }
       this.logger.log(`restored decoder state for ${records.length} device(s)`);
     } catch (error) {
@@ -121,17 +131,17 @@ export class CanDecodeService implements OnModuleInit {
 
     const records: CanRecord[] = [];
     for (const [deviceId, deviceFrames] of byDevice) {
-      const state = this.deviceState.get(deviceId) ?? { ...DEFAULT_STATE };
+      deviceFrames.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      const state = this.stateContinuingAt(deviceId, deviceFrames[0].timestamp);
       let latestTimestamp: Date | null = null;
       let hasRelevantFrame = false;
 
-      deviceFrames.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       for (const frame of deviceFrames) {
         if (this.applyFrame(state, frame)) hasRelevantFrame = true;
         if (!latestTimestamp || frame.timestamp > latestTimestamp) latestTimestamp = frame.timestamp;
       }
 
-      this.deviceState.set(deviceId, state);
+      if (latestTimestamp) this.deviceSnapshots.set(deviceId, { state, lastFrameAt: latestTimestamp });
 
       if (hasRelevantFrame && latestTimestamp) {
         records.push(CanRecord.from({ timestamp: latestTimestamp, deviceId, ...state }));
@@ -139,6 +149,13 @@ export class CanDecodeService implements OnModuleInit {
     }
 
     return records;
+  }
+
+  private stateContinuingAt(deviceId: string, firstFrameAt: Date): DeviceState {
+    const snapshot = this.deviceSnapshots.get(deviceId);
+    if (!snapshot) return { ...DEFAULT_STATE };
+    if (firstFrameAt.getTime() - snapshot.lastFrameAt.getTime() > STATE_EXPIRY_MS) return { ...DEFAULT_STATE };
+    return snapshot.state;
   }
 
   private applyFrame(state: DeviceState, frame: CanRaw): boolean {
