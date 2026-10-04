@@ -9,3 +9,16 @@ export type {
   WeeklyTrips,
   WeeklyTripsInput,
 } from './schemas/trips.schema';
+export type {
+  CreateMaintenanceRecordInput,
+  DeleteMaintenanceRecordInput,
+  MaintenanceAlert,
+  MaintenanceAlerts,
+  MaintenanceRecordView,
+  MaintenanceScheduleView,
+  MaintenanceStatus,
+  MaintenanceType,
+  ScheduledMaintenanceType,
+  UpdateMaintenanceRecordInput,
+  UpdateMaintenanceScheduleInput,
+} from './schemas/maintenance.schema';
