@@ -115,29 +115,35 @@ This is the part most likely to need careful reasoning about correctness:
 - Postgres with the TimescaleDB extension; `can_raw` and `can_record` are both hypertables
   (partitioned by `time`, see the `migrations/` for `create_hypertable` calls).
 - `can_raw` PK is `(time, device_id, can_id)`; `can_record` PK is `(time, device_id)`.
+- `maintenance_record` (PK `id` uuid) and `maintenance_schedule` (PK `type`) are plain tables, not hypertables.
 - `synchronize` is always `false` — schema changes go through TypeORM migrations only.
 - `data-source.ts` (used by the `migration:*` CLI scripts) loads `.env` directly via `dotenv` and is
   intentionally separate from `database.module.ts` (used by the running app via `ConfigService`).
 
 ### Dashboard query API (tRPC)
 
-car-can-dashboard 는 `/trpc` 의 tRPC 조회 API(`vehicle.status`, `vehicle.batteryHistory`, `trips.daily`,
-`trips.last`, `trips.weekly`)를 쓴다.
+car-can-dashboard 는 `/trpc` 의 tRPC API 를 쓴다. 조회: `vehicle.status`, `vehicle.batteryHistory`, `trips.daily`,
+`trips.last`, `trips.weekly`, `maintenance.alerts`, `maintenance.records.list`, `maintenance.schedules.list`.
+변경(mutation): `maintenance.records.create` / `update` / `delete`, `maintenance.schedules.update`.
 
-- `src/app/trpc/`: Zod 스키마(`schemas/`)와 라우터 팩토리(`routers/`). 라우터는 `VehicleQueries`/`TripQueries`
-  인터페이스에만 의존하고, `VehicleQueryService`/`TripQueryService` 가 이를 구현한다. `TrpcModule` 이 appRouter 를
+- `src/app/trpc/`: Zod 스키마(`schemas/`)와 라우터 팩토리(`routers/`). 라우터는 `VehicleQueries`/`TripQueries`/
+  `MaintenanceOperations` 인터페이스에만 의존하고, `VehicleQueryService`/`TripQueryService`/`MaintenanceService` 가 이를 구현한다. `TrpcModule` 이 appRouter 를
   `APP_ROUTER` 토큰으로 제공하고 `main.ts` 가 Express 어댑터로 `/trpc` 에 마운트한다(Nest 인터셉터/필터 미적용).
 - 집계 SQL 은 `CanRecordRepository` 에 있다: KST(`Asia/Seoul`) 날짜/주(월요일) 버킷, 시동 ON(`engine_rpm > 0`) 레코드 간
   5분 초과 공백으로 세션 분할, 거리 = odometer MAX - MIN(0 제외), 주행 시간 = 5분 이하 간격의 합.
   `engine_on` 컬럼은 추가 마이그레이션 이전 행이 기본값 FALSE 로 남아 있어 집계에 쓰지 않는다.
+- 정비: `maintenance_record`(이력, `type` enum)와 `maintenance_schedule`(타입별 `interval_km`/`warning_km`/`enabled`,
+  마이그레이션 시드)을 쓴다. 알림은 저장하지 않고 `MaintenanceSchedule.alertFor()` 가 타입별 최대 odometer 이력과 최신
+  `can_record` odometer(0 이면 미상)로 매번 계산한다. 타입 enum 은 `schemas/maintenance.schema.ts` 와 마이그레이션 CHECK
+  제약에 함께 있으니 같이 바꾼다. update 는 전체 교체이고, 서비스가 `null` 을 반환하면 라우터가 `NOT_FOUND` 로 바꾼다.
 - `src/app/trpc/index.ts` 에서 도달 가능한 파일은 상대 경로와 `zod`/`@trpc/server` 만 import 해야 한다.
   `pnpm run build:types` 가 여기서 `types/dist` 를 만들고, `pnpm run sync:types` 가 이를 dashboard 의
   `app/types/collector/` 로 복사한다(대상 경로는 `DASHBOARD_TYPES_DIR` 로 바꿀 수 있다). dashboard 는 `@/types/collector` 로 import 한다.
   라우터/스키마를 바꾸면 `sync:types` 를 다시 돌려 collector 의 `types/dist` 와 dashboard 의 복사본을 각각 커밋한다.
-- 인증 없음(`publicProcedure`). 로그인 도입 시 `trpc.context.ts` 의 `createContext` 에서 처리한다.
+- 인증 없음(`publicProcedure`). `maintenance` 의 쓰기(mutation)도 공개 상태이며 의도된 결정이다. 로그인 도입 시 `trpc.context.ts` 의 `createContext` 에서 처리한다.
 
 ### Auth
 
 Single shared-secret auth: `ApiKeyGuard` checks the `X-Api-Key` header against `API_KEY` from env.
 Applied at the controller level (`@UseGuards(ApiKeyGuard)` on `CollectController`), not globally —
-`HealthController`'s `/health` is unauthenticated. The `/trpc` dashboard API is currently unauthenticated as well.
+`HealthController`'s `/health` is unauthenticated. The `/trpc` dashboard API is currently unauthenticated as well, including the `maintenance` mutations.
