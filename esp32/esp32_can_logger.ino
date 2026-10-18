@@ -130,7 +130,6 @@ bool filter_is_target(uint32_t id) {
 #define SLOW_INTERVAL_MS  60000  // 60초
 
 static const uint16_t SLOW_IDS[] = {
-    0x329,   // EMS12   엔진 온도     (수분 단위로 변화)
     0x383,   // FATC11  외기 온도     (수분 단위로 변화)
     0x545,   // EMS14   배터리 전압   (수십 초 단위)
     0x593,   // TPMS11  타이어 공기압 (거의 안 변함)
