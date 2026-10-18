@@ -8,18 +8,20 @@
 </div>
 
 
-## 하드웨어 준비
+## 하드웨어
 
 ### 부품
 
-| 부품 | 용도 |
-| --- | --- |
-| ESP32 개발 보드 | 내장 TWAI(CAN) 컨트롤러로 프레임을 받고 Wi-Fi로 전송 |
-| SN65HVD230 CAN 트랜시버 모듈 | ESP32의 3.3V 신호와 CAN 버스의 차동 신호를 서로 변환 |
-| OBD2 커넥터(수) 또는 OBD2 분배 케이블 | 차량 CAN 버스에 연결 |
-| 전원 | 차량용 USB 충전기, 또는 12V → 5V 강압 컨버터 |
+| 부품 |
+| --- |
+| ESP32 개발 보드 |
+| SN65HVD230 CAN 트랜시버 모듈 |
+| OBD2 커넥터(수) 또는 OBD2 분배 케이블 |
+| 12V → 5V 강압 모듈 |
 
 ### 배선
+
+- CAN 통신 속도: 500kbps
 
 | ESP32 | SN65HVD230 | OBD2 핀 |
 | --- | --- | --- |
@@ -30,20 +32,15 @@
 | | CANH | 6번 |
 | | CANL | 14번 |
 
-- CAN 통신 속도: 500kbps
+### 펌웨어 환경변수 설정
 
-### 펌웨어 업로드
+- `esp32/secrets.example.h`를 `esp32/secrets.h`로 복사한 뒤 값을 채웁니다.
 
-1. Arduino IDE 보드 매니저에서 `esp32`(Espressif) 3.x를 설치하고 보드를 `ESP32 Dev Module`로 고릅니다.
-2. 라이브러리 매니저에서 `WiFiManager`(tzapu)를 설치합니다.
-3. `esp32/secrets.example.h`를 `esp32/secrets.h`로 복사한 뒤 값을 채웁니다.
-
-   | 값 | 설명 |
-   | --- | --- |
-   | `SERVER_URL` | 수집 API 주소. `https://<서버 주소>/can-collector/collect` 형태 |
-   | `DEVICE_ID` | 기기 식별자. 서버에 `X-Device-ID` 헤더로 전달됨 |
-   | `API_TOKEN` | 서버 `.env`의 `API_KEY`와 같은 값 |
-
+| 값 | 설명 |
+| --- | --- |
+| `SERVER_URL` | 수집 API 주소. `https://<서버 주소>/can-collector/collect` 형태 |
+| `DEVICE_ID` | 기기 식별자. 서버에 `X-Device-ID` 헤더로 전달됨 |
+| `API_TOKEN` | 서버 `.env`의 `API_KEY`와 같은 값 |
 
 ### 전송 방식
 
@@ -51,7 +48,7 @@
 - 10초가 지나거나 프레임이 500개 이상 쌓이면 한 번에 전송합니다.
 - 데이터는 JSON이 아닌 바이너리로 보냅니다. 프레임 하나가 13바이트입니다.
 
-## 서버 준비
+## 서버
 
 ### 요구 사항
 
@@ -77,12 +74,14 @@
 ```bash
 pnpm install
 pnpm run migration:run   # 테이블 생성
+pnpm run build:types     # tRPC 타입 생성
 pnpm run start:dev       # 개발 모드(파일 변경 감지)
 ```
 
 
 ```bash
 pnpm run build
+pnpm run build:types     # tRPC 타입 생성
 pnpm run start:prod
 ```
 
@@ -123,9 +122,3 @@ SELECT gen_random_uuid()::text, id, 'credential', id, '1단계에서 만든 해�
 - 이메일은 **소문자로** 넣으세요. 로그인할 때 입력한 이메일을 소문자로 바꿔 찾기 때문에, 대문자가 섞여 있으면 로그인되지 않습니다.
 - 비밀번호를 바꾸려면 1단계로 새 해시를 만들어 `auth_account.password` 를 업데이트하세요.
 - `auth_user` 에서 계정을 지우면 그 계정의 로그인 세션도 함께 지워져 바로 로그아웃됩니다.
-
-### tRPC 타입 생성
-
-```bash
-pnpm run build:types
-```
