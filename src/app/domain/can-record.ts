@@ -16,6 +16,9 @@ export interface CanRecordInput {
   driveMode: string;
   coolantTempC: number;
   steeringAngleDeg: number;
+  accelPedalPct: number;
+  brakePressureBar: number;
+  brakeActive: boolean;
   batteryVoltageV: number;
 }
 
@@ -43,6 +46,9 @@ export class CanRecord {
 
   readonly #coolantTempC: number; // 냉각수 온도
   readonly #steeringAngleDeg: number; // 조향각
+  readonly #accelPedalPct: number;
+  readonly #brakePressureBar: number;
+  readonly #brakeActive: boolean;
 
   readonly #batteryVoltageV: number; // 배터리 전압
 
@@ -64,6 +70,9 @@ export class CanRecord {
     this.#driveMode = input.driveMode;
     this.#coolantTempC = input.coolantTempC;
     this.#steeringAngleDeg = input.steeringAngleDeg;
+    this.#accelPedalPct = input.accelPedalPct;
+    this.#brakePressureBar = input.brakePressureBar;
+    this.#brakeActive = input.brakeActive;
     this.#batteryVoltageV = input.batteryVoltageV;
   }
 
@@ -133,6 +142,18 @@ export class CanRecord {
 
   get steeringAngleDeg(): number {
     return this.#steeringAngleDeg;
+  }
+
+  get accelPedalPct(): number {
+    return this.#accelPedalPct;
+  }
+
+  get brakePressureBar(): number {
+    return this.#brakePressureBar;
+  }
+
+  get brakeActive(): boolean {
+    return this.#brakeActive;
   }
 
   get batteryVoltageV(): number {

@@ -18,6 +18,19 @@ function engineFrame(at: Date, rpm: number, speedKph: number): CanRaw {
   return CanRaw.from(at, DEVICE_ID, 0x316, 8, data);
 }
 
+function engineStatusFrame(at: Date, accelPedalRaw: number, brakeActRaw: number): CanRaw {
+  const data = Buffer.alloc(8);
+  data.writeUInt8(brakeActRaw, 4);
+  data.writeUInt8(accelPedalRaw, 6);
+  return CanRaw.from(at, DEVICE_ID, 0x329, 8, data);
+}
+
+function brakePressureFrame(at: Date, pressureBar: number): CanRaw {
+  const data = Buffer.alloc(8);
+  data.writeBigUInt64LE(BigInt(Math.round(pressureBar * 10)) << 26n);
+  return CanRaw.from(at, DEVICE_ID, 0x220, 8, data);
+}
+
 function setup(latestRecords: CanRecord[] = []) {
   const repository = {
     findLatestPerDevice: jest.fn().mockResolvedValue(latestRecords),
@@ -26,6 +39,48 @@ function setup(latestRecords: CanRecord[] = []) {
 }
 
 describe('CanDecodeService', () => {
+  it('EMS12(0x329)에서 엑셀 밟은 양(%)을 디코딩한다', () => {
+    const service = setup();
+
+    const [record] = service.decode([engineStatusFrame(new Date('2026-10-01T00:00:00Z'), 41, 1)]);
+
+    expect(record.accelPedalPct).toBeCloseTo(16.0146);
+  });
+
+  it('EMS12(0x329) BRAKE_ACT 가 2 이면 브레이크를 밟은 상태다', () => {
+    const service = setup();
+
+    const [record] = service.decode([engineStatusFrame(new Date('2026-10-01T00:00:00Z'), 0, 2)]);
+
+    expect(record.brakeActive).toBe(true);
+  });
+
+  it('EMS12(0x329) BRAKE_ACT 가 1 이면 브레이크를 밟지 않은 상태다', () => {
+    const service = setup();
+
+    const [record] = service.decode([engineStatusFrame(new Date('2026-10-01T00:00:00Z'), 0, 1)]);
+
+    expect(record.brakeActive).toBe(false);
+  });
+
+  it('ESP12(0x220)에서 브레이크 압력(bar)을 디코딩한다', () => {
+    const service = setup();
+
+    const [record] = service.decode([brakePressureFrame(new Date('2026-10-01T00:00:00Z'), 43.7)]);
+
+    expect(record.brakePressureBar).toBeCloseTo(43.7);
+  });
+
+  it('엑셀·브레이크 프레임이 없으면 0, false 로 둔다', () => {
+    const service = setup();
+
+    const [record] = service.decode([engineFrame(new Date('2026-10-01T00:00:00Z'), 800, 0)]);
+
+    expect(record.accelPedalPct).toBe(0);
+    expect(record.brakePressureBar).toBe(0);
+    expect(record.brakeActive).toBe(false);
+  });
+
   it('직전 배치와 가까우면 느린 신호(odometer)를 이어서 쓴다', () => {
     const service = setup();
     service.decode([odometerFrame(new Date('2026-10-01T00:00:00Z'), 97001.9)]);
@@ -64,6 +119,9 @@ describe('CanDecodeService', () => {
       driveMode: 'Normal',
       coolantTempC: 90,
       steeringAngleDeg: 0,
+      accelPedalPct: 0,
+      brakePressureBar: 0,
+      brakeActive: false,
       batteryVoltageV: 14,
     });
     const service = setup([stale]);
@@ -94,6 +152,9 @@ describe('CanDecodeService', () => {
       driveMode: 'Normal',
       coolantTempC: 90,
       steeringAngleDeg: 0,
+      accelPedalPct: 0,
+      brakePressureBar: 0,
+      brakeActive: false,
       batteryVoltageV: 14,
     });
     const service = setup([recent]);

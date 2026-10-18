@@ -20,6 +20,9 @@ const recordInput: CanRecordInput = {
   driveMode: 'Eco',
   coolantTempC: 30,
   steeringAngleDeg: 0,
+  accelPedalPct: 0,
+  brakePressureBar: 0,
+  brakeActive: false,
   batteryVoltageV: 12.399999618530273,
 };
 

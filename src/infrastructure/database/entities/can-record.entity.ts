@@ -54,6 +54,15 @@ export class CanRecordEntity {
   @Column({ type: 'real', name: 'steering_angle_deg' })
   steeringAngleDeg: number;
 
+  @Column({ type: 'real', name: 'accel_pedal_pct' })
+  accelPedalPct: number;
+
+  @Column({ type: 'real', name: 'brake_pressure_bar' })
+  brakePressureBar: number;
+
+  @Column({ type: 'boolean', name: 'brake_active' })
+  brakeActive: boolean;
+
   @Column({ type: 'real', name: 'battery_voltage_v' })
   batteryVoltageV: number;
 
@@ -76,6 +85,9 @@ export class CanRecordEntity {
     entity.driveMode = domain.driveMode;
     entity.coolantTempC = domain.coolantTempC;
     entity.steeringAngleDeg = domain.steeringAngleDeg;
+    entity.accelPedalPct = domain.accelPedalPct;
+    entity.brakePressureBar = domain.brakePressureBar;
+    entity.brakeActive = domain.brakeActive;
     entity.batteryVoltageV = domain.batteryVoltageV;
     return entity;
   }
@@ -99,6 +111,9 @@ export class CanRecordEntity {
       driveMode: this.driveMode,
       coolantTempC: this.coolantTempC,
       steeringAngleDeg: this.steeringAngleDeg,
+      accelPedalPct: this.accelPedalPct,
+      brakePressureBar: this.brakePressureBar,
+      brakeActive: this.brakeActive,
       batteryVoltageV: this.batteryVoltageV,
     });
   }

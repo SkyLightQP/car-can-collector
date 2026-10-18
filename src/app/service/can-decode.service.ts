@@ -22,6 +22,8 @@ const TPMS_STATUS: Record<number, string> = {
 /** 센서 미수신. 압력 바이트가 이 값이면 유효값이 아니다. */
 const TPMS_NO_SENSOR = 0xff;
 
+const BRAKE_ACT_PRESSED = 2;
+
 interface DeviceState {
   odometerKm: number;
   vehicleSpeedKph: number;
@@ -38,6 +40,9 @@ interface DeviceState {
   driveMode: string;
   coolantTempC: number;
   steeringAngleDeg: number;
+  accelPedalPct: number;
+  brakePressureBar: number;
+  brakeActive: boolean;
   batteryVoltageV: number;
 }
 
@@ -57,6 +62,9 @@ const DEFAULT_STATE: DeviceState = {
   driveMode: 'Unknown',
   coolantTempC: 0,
   steeringAngleDeg: 0,
+  accelPedalPct: 0,
+  brakePressureBar: 0,
+  brakeActive: false,
   batteryVoltageV: 0,
 };
 
@@ -117,6 +125,9 @@ export class CanDecodeService implements OnModuleInit {
       driveMode: record.driveMode,
       coolantTempC: record.coolantTempC,
       steeringAngleDeg: record.steeringAngleDeg,
+      accelPedalPct: record.accelPedalPct,
+      brakePressureBar: record.brakePressureBar,
+      brakeActive: record.brakeActive,
       batteryVoltageV: record.batteryVoltageV,
     };
   }
@@ -172,6 +183,12 @@ export class CanDecodeService implements OnModuleInit {
 
       case 0x329: // EMS12 — 냉각수 온도
         state.coolantTempC = this.decodeSignal(data, 8, 8, false, 0.75, -48.0);
+        state.brakeActive = this.#extractLE(data, 32, 2) === BRAKE_ACT_PRESSED;
+        state.accelPedalPct = this.decodeSignal(data, 48, 8, false, 0.3906, 0);
+        return true;
+
+      case 0x220:
+        state.brakePressureBar = this.decodeSignal(data, 26, 12, false, 0.1, 0);
         return true;
 
       case 0x2b0: // SAS11 — 조향각
