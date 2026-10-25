@@ -17,9 +17,10 @@ function setup() {
   const getDaily = jest.fn().mockResolvedValue([]);
   const getLast = jest.fn().mockResolvedValue(lastTrip);
   const getWeekly = jest.fn().mockResolvedValue([]);
-  const queries: TripQueries = { getDaily, getLast, getWeekly };
+  const getReplay = jest.fn().mockResolvedValue([]);
+  const queries: TripQueries = { getDaily, getLast, getWeekly, getReplay };
   const caller = createCallerFactory(createTripsRouter(queries))({ user });
-  return { caller, getDaily, getLast, getWeekly };
+  return { caller, getDaily, getLast, getWeekly, getReplay };
 }
 
 describe('trips router', () => {
@@ -117,6 +118,32 @@ describe('trips router', () => {
       const { caller, getWeekly } = setup();
       getWeekly.mockResolvedValue([{ weekStart: '2026-09-21', distanceKm: 1, avgSpeedKph: 1, drivingMinutes: 1.5 }]);
       await expect(caller.weekly()).rejects.toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
+    });
+  });
+
+  describe('replay', () => {
+    it('범위를 그대로 전달한다', async () => {
+      const { caller, getReplay } = setup();
+      await caller.replay({ range: 'today' });
+      expect(getReplay).toHaveBeenCalledWith({ range: 'today' });
+    });
+
+    it.each([{ range: 'week' }, {}])('잘못된 입력 %p 는 BAD_REQUEST 로 거절한다', async (input) => {
+      const { caller, getReplay } = setup();
+      await expect(caller.replay(input as never)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(getReplay).not.toHaveBeenCalled();
+    });
+
+    it('출력의 t 가 정수가 아니면 INTERNAL_SERVER_ERROR 로 실패한다', async () => {
+      const { caller, getReplay } = setup();
+      getReplay.mockResolvedValue([
+        {
+          startedAt: '2026-10-25T00:00:00.000Z',
+          endedAt: '2026-10-25T00:00:00.000Z',
+          points: [{ t: 1.5, speedKph: 0, accelPct: 0, brakeBar: 0, steeringDeg: 0 }],
+        },
+      ]);
+      await expect(caller.replay({ range: 'last' })).rejects.toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
     });
   });
 });

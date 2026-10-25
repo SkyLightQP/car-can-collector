@@ -28,7 +28,15 @@ export interface DrivingSessionRow {
   drivingSeconds: number;
 }
 
-const SESSION_GAP_SECONDS = 300;
+export interface DriverInputRow {
+  time: Date;
+  speedKph: number;
+  accelPct: number;
+  brakeBar: number;
+  steeringDeg: number;
+}
+
+export const SESSION_GAP_SECONDS = 300;
 const LAST_SESSION_LOOKBACK = '24 hours';
 
 @Injectable()
@@ -159,5 +167,23 @@ export class CanRecordRepository {
       `
     );
     return rows[0] ?? null;
+  }
+
+  async findDriverInputs(from: Date, to: Date): Promise<DriverInputRow[]> {
+    return this.repo.query<DriverInputRow[]>(
+      `
+      SELECT time,
+             vehicle_speed_kph::float8  AS "speedKph",
+             accel_pedal_pct::float8    AS "accelPct",
+             brake_pressure_bar::float8 AS "brakeBar",
+             steering_angle_deg::float8 AS "steeringDeg"
+      FROM can_record
+      WHERE engine_rpm > 0
+        AND time >= $1
+        AND time < $2
+      ORDER BY time
+      `,
+      [from, to]
+    );
   }
 }

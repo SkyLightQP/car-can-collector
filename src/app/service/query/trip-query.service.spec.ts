@@ -1,11 +1,16 @@
-import type { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
+import type { CanRecordRepository, DriverInputRow } from '@infrastructure/repository/can-record.repository';
 import { TripQueryService } from './trip-query.service';
 
 function setup() {
   const aggregateDriving = jest.fn().mockResolvedValue([]);
   const findLastSession = jest.fn().mockResolvedValue(null);
-  const repository = { aggregateDriving, findLastSession } as unknown as CanRecordRepository;
-  return { service: new TripQueryService(repository), aggregateDriving, findLastSession };
+  const findDriverInputs = jest.fn().mockResolvedValue([]);
+  const repository = { aggregateDriving, findLastSession, findDriverInputs } as unknown as CanRecordRepository;
+  return { service: new TripQueryService(repository), aggregateDriving, findLastSession, findDriverInputs };
+}
+
+function row(iso: string, overrides: Partial<DriverInputRow> = {}): DriverInputRow {
+  return { time: new Date(iso), speedKph: 30, accelPct: 10, brakeBar: 0, steeringDeg: 0, ...overrides };
 }
 
 function useNow(iso: string) {
@@ -104,6 +109,79 @@ describe('TripQueryService', () => {
         avgSpeedKph: 42,
         durationMinutes: 60,
       });
+    });
+  });
+
+  describe('getReplay', () => {
+    it('today 는 KST 자정 경계로 조회한다', async () => {
+      useNow('2026-10-25T03:00:00Z');
+      const { service, findDriverInputs } = setup();
+      await service.getReplay({ range: 'today' });
+      expect(findDriverInputs).toHaveBeenCalledWith(
+        new Date('2026-10-24T15:00:00.000Z'),
+        new Date('2026-10-25T15:00:00.000Z')
+      );
+    });
+
+    it('5분을 넘는 공백에서 주행을 나누고 정확히 5분은 같은 주행으로 둔다', async () => {
+      const { service, findDriverInputs } = setup();
+      findDriverInputs.mockResolvedValue([
+        row('2026-10-25T00:00:00.000Z'),
+        row('2026-10-25T00:05:00.000Z'),
+        row('2026-10-25T00:10:00.001Z'),
+        row('2026-10-25T00:10:01.300Z'),
+      ]);
+      const sessions = await service.getReplay({ range: 'today' });
+      expect(sessions.map(({ startedAt, endedAt, points }) => [startedAt, endedAt, points.length])).toEqual([
+        ['2026-10-25T00:00:00.000Z', '2026-10-25T00:05:00.000Z', 2],
+        ['2026-10-25T00:10:00.001Z', '2026-10-25T00:10:01.300Z', 2],
+      ]);
+    });
+
+    it('점은 epoch ms 시각과 소수 첫째 자리로 반올림한 값을 가진다', async () => {
+      const { service, findDriverInputs } = setup();
+      findDriverInputs.mockResolvedValue([
+        row('2026-10-25T00:00:00.000Z', {
+          speedKph: 61.99999,
+          accelPct: 42.29998779296875,
+          brakeBar: 14.04,
+          steeringDeg: -3.25,
+        }),
+      ]);
+      const [session] = await service.getReplay({ range: 'today' });
+      expect(session.points).toEqual([
+        { t: Date.parse('2026-10-25T00:00:00.000Z'), speedKph: 62, accelPct: 42.3, brakeBar: 14, steeringDeg: -3.2 },
+      ]);
+    });
+
+    it('today 에 레코드가 없으면 빈 배열이다', async () => {
+      const { service } = setup();
+      await expect(service.getReplay({ range: 'today' })).resolves.toEqual([]);
+    });
+
+    it('last 는 마지막 세션 구간을 끝 포함으로 조회한다', async () => {
+      const { service, findLastSession, findDriverInputs } = setup();
+      findLastSession.mockResolvedValue({
+        startedAt: new Date('2026-10-25T00:00:00.000Z'),
+        endedAt: new Date('2026-10-25T00:04:00.000Z'),
+        distanceKm: 3,
+        maxSpeedKph: 80,
+        avgSpeedKph: 40,
+        drivingSeconds: 240,
+      });
+      findDriverInputs.mockResolvedValue([row('2026-10-25T00:00:00.000Z'), row('2026-10-25T00:04:00.000Z')]);
+      const sessions = await service.getReplay({ range: 'last' });
+      expect(findDriverInputs).toHaveBeenCalledWith(
+        new Date('2026-10-25T00:00:00.000Z'),
+        new Date('2026-10-25T00:04:00.001Z')
+      );
+      expect(sessions).toHaveLength(1);
+    });
+
+    it('last 주행이 없으면 빈 배열이고 레코드를 조회하지 않는다', async () => {
+      const { service, findDriverInputs } = setup();
+      await expect(service.getReplay({ range: 'last' })).resolves.toEqual([]);
+      expect(findDriverInputs).not.toHaveBeenCalled();
     });
   });
 });

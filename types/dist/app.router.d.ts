@@ -91,6 +91,23 @@ export declare function createAppRouter(deps: AppRouterDeps): import("@trpc/serv
             }[];
             meta: object;
         }>;
+        replay: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                range: "last" | "today";
+            };
+            output: {
+                startedAt: string;
+                endedAt: string;
+                points: {
+                    t: number;
+                    speedKph: number;
+                    accelPct: number;
+                    brakeBar: number;
+                    steeringDeg: number;
+                }[];
+            }[];
+            meta: object;
+        }>;
     }>>;
     maintenance: import("@trpc/server").TRPCBuiltRouter<{
         ctx: import("./trpc").Context;

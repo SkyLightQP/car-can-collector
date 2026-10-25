@@ -35,3 +35,24 @@ export declare const weeklyTripsSchema: z.ZodArray<z.ZodObject<{
 }, z.core.$strip>>;
 export type WeeklyTrips = z.infer<typeof weeklyTripsSchema>;
 export type WeeklyTrip = WeeklyTrips[number];
+export declare const driveReplayInputSchema: z.ZodObject<{
+    range: z.ZodEnum<{
+        last: "last";
+        today: "today";
+    }>;
+}, z.core.$strip>;
+export type DriveReplayInput = z.infer<typeof driveReplayInputSchema>;
+export declare const driveReplaySchema: z.ZodArray<z.ZodObject<{
+    startedAt: z.ZodISODateTime;
+    endedAt: z.ZodISODateTime;
+    points: z.ZodArray<z.ZodObject<{
+        t: z.ZodInt;
+        speedKph: z.ZodNumber;
+        accelPct: z.ZodNumber;
+        brakeBar: z.ZodNumber;
+        steeringDeg: z.ZodNumber;
+    }, z.core.$strip>>;
+}, z.core.$strip>>;
+export type DriveReplay = z.infer<typeof driveReplaySchema>;
+export type DriveReplaySession = DriveReplay[number];
+export type DriveReplayPoint = DriveReplaySession['points'][number];

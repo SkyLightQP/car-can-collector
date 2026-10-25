@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CanRecordRepository, type DrivingBucketRow } from '@infrastructure/repository/can-record.repository';
+import {
+  CanRecordRepository,
+  type DriverInputRow,
+  type DrivingBucketRow,
+  SESSION_GAP_SECONDS,
+} from '@infrastructure/repository/can-record.repository';
 import type { TripQueries } from '@app/trpc/routers/trips.router';
 import type {
   DailyTrips,
   DailyTripsInput,
+  DriveReplay,
+  DriveReplayInput,
   LastTrip,
   WeeklyTrips,
   WeeklyTripsInput,
@@ -61,6 +68,24 @@ export class TripQueryService implements TripQueries {
       durationMinutes: stats.drivingMinutes,
     };
   }
+
+  async getReplay({ range }: DriveReplayInput): Promise<DriveReplay> {
+    if (range === 'today') {
+      const today = KstDate.today(new Date());
+      return splitIntoReplaySessions(
+        await this.canRecordRepository.findDriverInputs(today.startsAt, today.addDays(1).startsAt)
+      );
+    }
+
+    const session = await this.canRecordRepository.findLastSession();
+    if (!session) return [];
+
+    const rows = await this.canRecordRepository.findDriverInputs(
+      session.startedAt,
+      new Date(session.endedAt.getTime() + 1)
+    );
+    return splitIntoReplaySessions(rows);
+  }
 }
 
 function attachDrivingStats(periods: KstDate[], rows: DrivingBucketRow[]): { period: KstDate; stats: DrivingStats }[] {
@@ -69,4 +94,33 @@ function attachDrivingStats(periods: KstDate[], rows: DrivingBucketRow[]): { per
     const row = rowByBucket.get(period.value);
     return { period, stats: row ? DrivingStats.from(row) : DrivingStats.empty() };
   });
+}
+
+function splitIntoReplaySessions(rows: DriverInputRow[]): DriveReplay {
+  const sessions: DriveReplay = [];
+  let previousTime: number | null = null;
+
+  for (const row of rows) {
+    const time = row.time.getTime();
+    if (previousTime === null || time - previousTime > SESSION_GAP_SECONDS * 1000) {
+      sessions.push({ startedAt: row.time.toISOString(), endedAt: row.time.toISOString(), points: [] });
+    }
+
+    const session = sessions[sessions.length - 1];
+    session.endedAt = row.time.toISOString();
+    session.points.push({
+      t: time,
+      speedKph: roundToTenth(row.speedKph),
+      accelPct: roundToTenth(row.accelPct),
+      brakeBar: roundToTenth(row.brakeBar),
+      steeringDeg: roundToTenth(row.steeringDeg),
+    });
+    previousTime = time;
+  }
+
+  return sessions;
+}
+
+function roundToTenth(value: number): number {
+  return Math.round(value * 10) / 10;
 }

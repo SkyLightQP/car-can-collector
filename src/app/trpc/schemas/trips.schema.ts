@@ -56,3 +56,27 @@ export const weeklyTripsSchema = z.array(
 );
 export type WeeklyTrips = z.infer<typeof weeklyTripsSchema>;
 export type WeeklyTrip = WeeklyTrips[number];
+
+export const driveReplayInputSchema = z.object({
+  range: z.enum(['last', 'today']),
+});
+export type DriveReplayInput = z.infer<typeof driveReplayInputSchema>;
+
+export const driveReplaySchema = z.array(
+  z.object({
+    startedAt: z.iso.datetime(),
+    endedAt: z.iso.datetime(),
+    points: z.array(
+      z.object({
+        t: z.int(),
+        speedKph: z.number(),
+        accelPct: z.number(),
+        brakeBar: z.number(),
+        steeringDeg: z.number(),
+      })
+    ),
+  })
+);
+export type DriveReplay = z.infer<typeof driveReplaySchema>;
+export type DriveReplaySession = DriveReplay[number];
+export type DriveReplayPoint = DriveReplaySession['points'][number];
