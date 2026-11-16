@@ -1,3 +1,4 @@
+import { type ApiKeyOperations } from './routers/api-key.router';
 import { type MaintenanceOperations } from './routers/maintenance.router';
 import { type TripQueries } from './routers/trips.router';
 import { type VehicleQueries } from './routers/vehicle.router';
@@ -5,6 +6,7 @@ export interface AppRouterDeps {
     vehicle: VehicleQueries;
     trips: TripQueries;
     maintenance: MaintenanceOperations;
+    apiKeys: ApiKeyOperations;
 }
 export declare function createAppRouter(deps: AppRouterDeps): import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("./trpc").Context;
@@ -237,6 +239,45 @@ export declare function createAppRouter(deps: AppRouterDeps): import("@trpc/serv
                 meta: object;
             }>;
         }>>;
+    }>>;
+    apiKeys: import("@trpc/server").TRPCBuiltRouter<{
+        ctx: import("./trpc").Context;
+        meta: object;
+        errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+        transformer: false;
+    }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        list: import("@trpc/server").TRPCQueryProcedure<{
+            input: void;
+            output: {
+                id: string;
+                name: string;
+                prefix: string;
+                createdAt: string;
+            }[];
+            meta: object;
+        }>;
+        create: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                name: string;
+            };
+            output: {
+                id: string;
+                name: string;
+                prefix: string;
+                createdAt: string;
+                key: string;
+            };
+            meta: object;
+        }>;
+        delete: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                id: string;
+            };
+            output: {
+                id: string;
+            };
+            meta: object;
+        }>;
     }>>;
 }>>;
 export type AppRouter = ReturnType<typeof createAppRouter>;

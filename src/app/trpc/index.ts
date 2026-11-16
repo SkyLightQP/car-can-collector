@@ -26,3 +26,4 @@ export type {
   UpdateMaintenanceRecordInput,
   UpdateMaintenanceScheduleInput,
 } from './schemas/maintenance.schema';
+export type { ApiKeyView, CreateApiKeyInput, CreatedApiKey, DeleteApiKeyInput } from './schemas/api-key.schema';

@@ -5,10 +5,25 @@ import { CanDecodeService } from '@app/service/can-decode.service';
 import { VehicleQueryService } from '@app/service/query/vehicle-query.service';
 import { TripQueryService } from '@app/service/query/trip-query.service';
 import { MaintenanceService } from '@app/service/maintenance.service';
+import { ApiKeyService } from '@app/service/api-key.service';
 
 @Module({
   imports: [RepositoryModule],
-  providers: [CanCollectorService, CanDecodeService, VehicleQueryService, TripQueryService, MaintenanceService],
-  exports: [CanCollectorService, CanDecodeService, VehicleQueryService, TripQueryService, MaintenanceService],
+  providers: [
+    CanCollectorService,
+    CanDecodeService,
+    VehicleQueryService,
+    TripQueryService,
+    MaintenanceService,
+    ApiKeyService,
+  ],
+  exports: [
+    CanCollectorService,
+    CanDecodeService,
+    VehicleQueryService,
+    TripQueryService,
+    MaintenanceService,
+    ApiKeyService,
+  ],
 })
 export class ServiceModule {}
