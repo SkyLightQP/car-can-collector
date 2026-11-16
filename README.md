@@ -40,7 +40,7 @@
 | --- | --- |
 | `SERVER_URL` | 수집 API 주소. `https://<서버 주소>/can-collector/collect` 형태 |
 | `DEVICE_ID` | 기기 식별자. 서버에 `X-Device-ID` 헤더로 전달됨 |
-| `API_TOKEN` | 서버 `.env`의 `API_KEY`와 같은 값 |
+| `API_TOKEN` | 대시보드 설정 > API 키에서 생성한 키 |
 
 ### 전송 방식
 
@@ -63,7 +63,6 @@
 | --- | --- |
 | `NODE_ENV` | `development`이면 SQL 로그를 출력하고 tRPC 오류 응답에 스택 트레이스를 포함합니다 |
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 접속 정보 |
-| `API_KEY` | ESP32 인증 키. 펌웨어 `secrets.h`의 `API_TOKEN`과 같은 값이어야 합니다 |
 | `BETTER_AUTH_SECRET` | 로그인 토큰 서명 키. 32자 이상의 랜덤 문자열이며, 없으면 서버가 시작되지 않습니다 |
 | `BETTER_AUTH_URL` | 외부에서 접속하는 서버 주소 (예: `https://collector.example.com`) |
 | `TRUSTED_ORIGINS` | 로그인을 요청할 수 있는 대시보드 주소. 여러 개면 쉼표로 구분합니다 (예: `https://dash.example.com`) |

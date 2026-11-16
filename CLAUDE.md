@@ -70,7 +70,7 @@ Each 13-byte frame is `ts_offset(u16 LE) + can_id(u16 LE) + dlc(u8) + data(8 byt
 ### Layering (`src/`)
 
 - `app/controller` — HTTP surface. `CollectController` validates payload shape/headers and delegates
-  to the service layer; guarded by `ApiKeyGuard` (compares `X-Api-Key` against `API_KEY` env var).
+  to the service layer; guarded by `ApiKeyGuard` (looks up the SHA-256 of `X-Api-Key` in the `api_key` table).
 - `app/service` — business logic, framework-agnostic aside from DI decorators.
   - `CanCollectorService`: parses the binary batch into `CanRaw` domain objects and orchestrates
     saving raw + decoded data.
@@ -116,6 +116,8 @@ This is the part most likely to need careful reasoning about correctness:
   (partitioned by `time`, see the `migrations/` for `create_hypertable` calls).
 - `can_raw` PK is `(time, device_id, can_id)`; `can_record` PK is `(time, device_id)`.
 - `maintenance_record` (PK `id` uuid) and `maintenance_schedule` (PK `type`) are plain tables, not hypertables.
+- `api_key` (PK `id` uuid, UNIQUE `key_hash`) is a plain table. It stores only the SHA-256 hex of each key plus a
+  12-char display prefix; the plaintext key is returned once from `apiKeys.create` and never stored.
 - `auth_user`, `auth_session`, `auth_account`, `auth_verification` are plain tables owned by BetterAuth (schema via TypeORM migration, not the BetterAuth CLI).
 - `synchronize` is always `false` — schema changes go through TypeORM migrations only.
 - `data-source.ts` (used by the `migration:*` CLI scripts) loads `.env` directly via `dotenv` and is
@@ -124,11 +126,11 @@ This is the part most likely to need careful reasoning about correctness:
 ### Dashboard query API (tRPC)
 
 car-can-dashboard 는 `/trpc` 의 tRPC API 를 쓴다. 조회: `vehicle.status`, `vehicle.batteryHistory`, `trips.daily`,
-`trips.last`, `trips.weekly`, `maintenance.alerts`, `maintenance.records.list`, `maintenance.schedules.list`.
-변경(mutation): `maintenance.records.create` / `update` / `delete`, `maintenance.schedules.update`.
+`trips.last`, `trips.weekly`, `maintenance.alerts`, `maintenance.records.list`, `maintenance.schedules.list`, `apiKeys.list`.
+변경(mutation): `maintenance.records.create` / `update` / `delete`, `maintenance.schedules.update`, `apiKeys.create` / `delete`.
 
 - `src/app/trpc/`: Zod 스키마(`schemas/`)와 라우터 팩토리(`routers/`). 라우터는 `VehicleQueries`/`TripQueries`/
-  `MaintenanceOperations` 인터페이스에만 의존하고, `VehicleQueryService`/`TripQueryService`/`MaintenanceService` 가 이를 구현한다. `TrpcModule` 이 appRouter 를
+  `MaintenanceOperations`/`ApiKeyOperations` 인터페이스에만 의존하고, `VehicleQueryService`/`TripQueryService`/`MaintenanceService`/`ApiKeyService` 가 이를 구현한다. `TrpcModule` 이 appRouter 를
   `APP_ROUTER` 토큰으로 제공하고 `main.ts` 가 Express 어댑터로 `/trpc` 에 마운트한다(Nest 인터셉터/필터 미적용).
 - 집계 SQL 은 `CanRecordRepository` 에 있다: KST(`Asia/Seoul`) 날짜/주(월요일) 버킷, 시동 ON(`engine_rpm > 0`) 레코드 간
   5분 초과 공백으로 세션 분할, 거리 = odometer MAX - MIN(0 제외), 주행 시간 = 5분 이하 간격의 합.
@@ -147,8 +149,15 @@ car-can-dashboard 는 `/trpc` 의 tRPC API 를 쓴다. 조회: `vehicle.status`,
 
 Two independent mechanisms:
 
-- `/can-collector/collect`: `ApiKeyGuard` checks the `X-Api-Key` header against `API_KEY` from env (controller-level
-  `@UseGuards`, unchanged by BetterAuth).
+- `/can-collector/collect`: `ApiKeyGuard` hashes the `X-Api-Key` header (SHA-256 hex) and checks it exists in `api_key`
+  (controller-level `@UseGuards`, unchanged by BetterAuth). Keys are created/deleted from the dashboard settings page via
+  `apiKeys.*`; deletion revokes immediately (no cache). There is no `API_KEY` env var anymore. Keys are 256-bit random,
+  so plain SHA-256 is used instead of a slow KDF. To register an existing key by hand:
+
+  ```sql
+  INSERT INTO api_key (name, key_hash, key_prefix)
+  VALUES ('NAME', encode(sha256(convert_to('KEY', 'UTF8')), 'hex'), left('KEY', 12));
+  ```
 - `/trpc`: BetterAuth email/password login with DB sessions and the `bearer()` plugin. Clients sign in at
   `POST /auth/sign-in/email`, read the `set-auth-token` response header, and send `Authorization: Bearer <token>`.
   Sign-up is disabled. `/health` is public. BetterAuth rate limiting is disabled (`rateLimit.enabled: false`).
