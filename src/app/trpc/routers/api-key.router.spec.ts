@@ -9,10 +9,10 @@ const KEY_ID = '7a1d2c3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e';
 const apiKey: ApiKeyView = {
   id: KEY_ID,
   name: 'ESP32',
-  prefix: 'cck_AbCdEfGh',
+  prefix: 'ccc_AbCdEfGh',
   createdAt: '2026-11-17T01:02:03.000Z',
 };
-const created: CreatedApiKey = { ...apiKey, key: 'cck_AbCdEfGh-rest-of-key' };
+const created: CreatedApiKey = { ...apiKey, key: 'ccc_AbCdEfGh-rest-of-key' };
 
 function setup(currentUser: typeof user | null = user) {
   const operations = {

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-const KEY_PREFIX = 'cck_';
+const KEY_PREFIX = 'ccc_';
 const DISPLAY_PREFIX_LENGTH = 12;
 
 export interface ApiKeyInput {

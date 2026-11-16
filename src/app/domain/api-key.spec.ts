@@ -1,9 +1,9 @@
 import { generateApiKeySecret, hashApiKey } from './api-key';
 
 describe('generateApiKeySecret', () => {
-  it('cck_ 접두사와 43자 base64url 본문으로 키를 만들고 앞 12자를 표시용 prefix 로 둔다', () => {
+  it('ccc_ 접두사와 43자 base64url 본문으로 키를 만들고 앞 12자를 표시용 prefix 로 둔다', () => {
     const { key, prefix } = generateApiKeySecret();
-    expect(key).toMatch(/^cck_[A-Za-z0-9_-]{43}$/);
+    expect(key).toMatch(/^ccc_[A-Za-z0-9_-]{43}$/);
     expect(prefix).toBe(key.slice(0, 12));
   });
 

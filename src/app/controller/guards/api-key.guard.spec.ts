@@ -16,13 +16,13 @@ function setup(valid: boolean) {
 describe('ApiKeyGuard', () => {
   it('등록된 키면 통과시킨다', async () => {
     const { guard, isValid } = setup(true);
-    await expect(guard.canActivate(contextWithHeader('cck_device'))).resolves.toBe(true);
-    expect(isValid).toHaveBeenCalledWith('cck_device');
+    await expect(guard.canActivate(contextWithHeader('ccc_device'))).resolves.toBe(true);
+    expect(isValid).toHaveBeenCalledWith('ccc_device');
   });
 
   it('등록되지 않았거나 헤더가 없으면 401 이다', async () => {
     const { guard } = setup(false);
-    await expect(guard.canActivate(contextWithHeader('cck_unknown'))).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(guard.canActivate(contextWithHeader('ccc_unknown'))).rejects.toBeInstanceOf(UnauthorizedException);
     await expect(guard.canActivate(contextWithHeader(undefined))).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
