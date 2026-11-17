@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { McpServer, InMemoryTransport, createMcpHandler } from '@modelcontextprotocol/server';
 import { Client } from '@modelcontextprotocol/client';
 import { registerReadOnlyTools } from './mcp-tools';
@@ -101,6 +102,19 @@ describe('registerReadOnlyTools', () => {
     expect(deps.trips.getReplay).toHaveBeenCalledWith({ range: 'last' });
     expect(text).not.toContain('points');
     expect(text).toContain('hardAccelCount');
+  });
+
+  it('서비스가 실패하면 내부 오류 메시지 대신 일반 안내 문구로 isError 결과를 돌려주고 로그를 남긴다', async () => {
+    const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    deps.vehicle.getStatus.mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:5432'));
+
+    const result = await client.callTool({ name: 'get_vehicle_status', arguments: {} });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).not.toContain('ECONNREFUSED');
+    expect(textOf(result)).not.toContain('10.0.0.5');
+    expect(logError).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'), expect.any(String));
+    logError.mockRestore();
   });
 });
 

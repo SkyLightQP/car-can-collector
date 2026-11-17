@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { summarizeDriveSessions } from '@app/domain/drive-session-summary';
@@ -15,9 +16,19 @@ export interface McpToolDeps {
 
 const noInputSchema = z.object({});
 const READ_ONLY = { readOnlyHint: true };
+const QUERY_FAILED_MESSAGE = '조회 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 
-function asTextResult(value: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(value) }] };
+const mcpLogger = new Logger('MCP');
+
+async function runQuery(toolName: string, query: () => Promise<unknown>) {
+  try {
+    const value = await query();
+    return { content: [{ type: 'text' as const, text: JSON.stringify(value) }] };
+  } catch (error) {
+    const failure = error instanceof Error ? error : new Error(String(error));
+    mcpLogger.error(`${toolName} 실패: ${failure.message}`, failure.stack);
+    return { content: [{ type: 'text' as const, text: QUERY_FAILED_MESSAGE }], isError: true };
+  }
 }
 
 export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): void {
@@ -31,7 +42,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
-    async () => asTextResult(await vehicle.getStatus())
+    () => runQuery('get_vehicle_status', () => vehicle.getStatus())
   );
 
   server.registerTool(
@@ -41,7 +52,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: batteryHistoryInputSchema,
       annotations: READ_ONLY,
     },
-    async (input) => asTextResult(await vehicle.getBatteryHistory(input))
+    (input) => runQuery('get_battery_history', () => vehicle.getBatteryHistory(input))
   );
 
   server.registerTool(
@@ -52,7 +63,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: dailyTripsInputSchema,
       annotations: READ_ONLY,
     },
-    async (input) => asTextResult(await trips.getDaily(input))
+    (input) => runQuery('get_daily_trips', () => trips.getDaily(input))
   );
 
   server.registerTool(
@@ -63,7 +74,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
-    async () => asTextResult(await trips.getLast())
+    () => runQuery('get_last_trip', () => trips.getLast())
   );
 
   server.registerTool(
@@ -74,7 +85,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: weeklyTripsInputSchema,
       annotations: READ_ONLY,
     },
-    async (input) => asTextResult(await trips.getWeekly(input))
+    (input) => runQuery('get_weekly_trips', () => trips.getWeekly(input))
   );
 
   server.registerTool(
@@ -85,7 +96,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: driveReplayInputSchema,
       annotations: READ_ONLY,
     },
-    async (input) => asTextResult(summarizeDriveSessions(await trips.getReplay(input)))
+    (input) => runQuery('get_drive_session_summaries', async () => summarizeDriveSessions(await trips.getReplay(input)))
   );
 
   server.registerTool(
@@ -95,7 +106,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
-    async () => asTextResult(await maintenance.getAlerts())
+    () => runQuery('get_maintenance_alerts', () => maintenance.getAlerts())
   );
 
   server.registerTool(
@@ -106,7 +117,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
-    async () => asTextResult(await maintenance.listRecords())
+    () => runQuery('list_maintenance_records', () => maintenance.listRecords())
   );
 
   server.registerTool(
@@ -116,6 +127,6 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
-    async () => asTextResult(await maintenance.listSchedules())
+    () => runQuery('list_maintenance_schedules', () => maintenance.listSchedules())
   );
 }
