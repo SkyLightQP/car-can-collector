@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
@@ -9,13 +10,20 @@ import type { AppRouter } from '@app/trpc/app.router';
 import { createContextFactory, type AuthSessionReader } from '@app/trpc/trpc.context';
 import { APP_ROUTER } from '@app/trpc/trpc.module';
 import { AUTH_SESSION_READER, BETTER_AUTH } from '@infrastructure/auth/auth.module';
-import type { BetterAuthInstance } from '@infrastructure/auth/better-auth';
+import { readBetterAuthSettings, type BetterAuthInstance } from '@infrastructure/auth/better-auth';
+import { createMcpRoute } from '@infrastructure/auth/mcp-route';
+import { toExpressHandler } from '@infrastructure/http/fetch-handler';
+import { MCP_HTTP_HANDLER } from '@app/mcp/mcp.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
 
   const auth = app.get<BetterAuthInstance>(BETTER_AUTH);
-  app.getHttpAdapter().getInstance().all('/auth/*splat', toNodeHandler(auth));
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.all('/auth/*splat', toNodeHandler(auth));
+  expressApp.all('/.well-known/*splat', toNodeHandler(auth));
+  const settings = readBetterAuthSettings(app.get(ConfigService));
+  expressApp.all('/mcp', toExpressHandler(createMcpRoute(auth, app.get(MCP_HTTP_HANDLER), settings.mcpResource)));
 
   const trpcLogger = new Logger('tRPC');
   app.use(
