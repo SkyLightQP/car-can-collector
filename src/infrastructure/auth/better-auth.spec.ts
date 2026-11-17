@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { cimd } from '@better-auth/cimd';
+import { fetchClientMetadataResource } from '@better-auth/cimd/node';
 import { mcp } from '@better-auth/mcp';
 import type { Pool } from 'pg';
 import { createBetterAuthOptions, isAllowedClientMetadataUrl, readBetterAuthSettings } from './better-auth';
@@ -129,5 +130,14 @@ describe('createBetterAuthOptions', () => {
     expect(isMetadataDocumentUrlAllowed!('https://evil.com/client', undefined!)).toBe(false);
     expect(warn).toHaveBeenCalledWith('CIMD client 거부: https://evil.com/client');
     warn.mockRestore();
+  });
+
+  it('CIMD 메타데이터 문서는 기본으로 Node 전송을 쓰고 overrides 로 바꿀 수 있다', () => {
+    createBetterAuthOptions(database, settingsFrom(REQUIRED_ENV));
+    expect(jest.mocked(cimd).mock.lastCall![0].fetchClientMetadataResource).toBe(fetchClientMetadataResource);
+
+    const fakeFetch = jest.fn();
+    createBetterAuthOptions(database, settingsFrom(REQUIRED_ENV), { fetchClientMetadataResource: fakeFetch });
+    expect(jest.mocked(cimd).mock.lastCall![0].fetchClientMetadataResource).toBe(fakeFetch);
   });
 });

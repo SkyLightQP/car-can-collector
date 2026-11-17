@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { cimd } from '@better-auth/cimd';
 import { fetchClientMetadataResource } from '@better-auth/cimd/node';
 import { mcp } from '@better-auth/mcp';
+import type { ClientMetadataResourceFetch } from '@better-auth/oauth-provider';
 import { type BetterAuthOptions, type DBAdapterInstance, betterAuth } from 'better-auth';
 import { bearer, jwt } from 'better-auth/plugins';
 import type { Pool } from 'pg';
@@ -60,9 +61,14 @@ export function isAllowedClientMetadataUrl(clientIdUrl: string, allowedHosts: re
 
 const timestampFields = { createdAt: 'created_at', updatedAt: 'updated_at' };
 
+export interface BetterAuthOverrides {
+  fetchClientMetadataResource?: ClientMetadataResourceFetch;
+}
+
 export function createBetterAuthOptions(
   database: Pool | DBAdapterInstance,
-  settings: BetterAuthSettings
+  settings: BetterAuthSettings,
+  overrides: BetterAuthOverrides = {}
 ): BetterAuthOptions {
   const isMetadataDocumentUrlAllowed = (clientIdUrl: string) => {
     if (isAllowedClientMetadataUrl(clientIdUrl, settings.allowedClientHosts)) {
@@ -90,7 +96,11 @@ export function createBetterAuthOptions(
         resource: settings.mcpResource,
         schema: oauthProviderSchema,
       }),
-      cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28', isMetadataDocumentUrlAllowed }),
+      cimd({
+        fetchClientMetadataResource: overrides.fetchClientMetadataResource ?? fetchClientMetadataResource,
+        metadataProfile: 'mcp-2026-07-28',
+        isMetadataDocumentUrlAllowed,
+      }),
     ],
     user: {
       modelName: 'auth_user',
