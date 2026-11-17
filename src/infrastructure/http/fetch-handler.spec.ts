@@ -2,11 +2,11 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import request from 'supertest';
-import { toExpressHandler, type FetchHandler } from './fetch-handler';
+import { toExpressHandler, type ExpressHandlerOptions, type FetchHandler } from './fetch-handler';
 
-function createApp(handler: FetchHandler) {
+function createApp(handler: FetchHandler, options?: ExpressHandlerOptions) {
   const app = express();
-  app.all('/mcp', toExpressHandler(handler));
+  app.all('/mcp', toExpressHandler(handler, options));
   app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     void _next;
     res.status(500).json({ message: error.message });
@@ -33,6 +33,21 @@ describe('toExpressHandler', () => {
     expect(received?.method).toBe('POST');
     expect(received?.authorization).toBe('Bearer t');
     expect(received?.body).toEqual({ hello: 'world' });
+  });
+
+  it('origin 을 지정하면 프록시 뒤의 요청 프로토콜과 호스트 대신 그 origin 에 경로와 쿼리를 붙인다', async () => {
+    let receivedUrl: string | undefined;
+    const app = createApp(
+      (fetchRequest) => {
+        receivedUrl = fetchRequest.url;
+        return Promise.resolve(new Response(null, { status: 204 }));
+      },
+      { origin: 'https://api.example.com' }
+    );
+
+    await request(app).post('/mcp?x=1').set('host', 'internal:3000').send({}).expect(204);
+
+    expect(receivedUrl).toBe('https://api.example.com/mcp?x=1');
   });
 
   it('Fetch 응답의 상태, 헤더, 본문을 그대로 돌려준다', async () => {

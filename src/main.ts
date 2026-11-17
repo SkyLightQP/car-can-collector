@@ -23,7 +23,12 @@ async function bootstrap() {
   expressApp.all('/auth/*splat', toNodeHandler(auth));
   expressApp.all('/.well-known/*splat', toNodeHandler(auth));
   const settings = readBetterAuthSettings(app.get(ConfigService));
-  expressApp.all('/mcp', toExpressHandler(createMcpRoute(auth, app.get(MCP_HTTP_HANDLER), settings.mcpResource)));
+  expressApp.all(
+    '/mcp',
+    toExpressHandler(createMcpRoute(auth, app.get(MCP_HTTP_HANDLER), settings.mcpResource), {
+      origin: new URL(settings.mcpResource).origin,
+    })
+  );
 
   const trpcLogger = new Logger('tRPC');
   app.use(

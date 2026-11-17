@@ -5,7 +5,11 @@ import type { NextFunction, Request as ExpressRequest, RequestHandler, Response 
 
 export type FetchHandler = (request: Request) => Promise<Response>;
 
-export function toExpressHandler(handler: FetchHandler): RequestHandler {
+export interface ExpressHandlerOptions {
+  origin?: string;
+}
+
+export function toExpressHandler(handler: FetchHandler, options: ExpressHandlerOptions = {}): RequestHandler {
   return async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const headers = new Headers();
@@ -18,7 +22,8 @@ export function toExpressHandler(handler: FetchHandler): RequestHandler {
       }
 
       const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-      const fetchRequest = new Request(`${req.protocol}://${req.get('host')}${req.originalUrl}`, {
+      const origin = options.origin ?? `${req.protocol}://${req.get('host')}`;
+      const fetchRequest = new Request(`${origin}${req.originalUrl}`, {
         method: req.method,
         headers,
         ...(hasBody ? { body: Readable.toWeb(req) as unknown as BodyInit, duplex: 'half' } : {}),
