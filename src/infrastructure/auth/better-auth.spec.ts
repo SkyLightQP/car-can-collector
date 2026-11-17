@@ -111,7 +111,7 @@ describe('createBetterAuthOptions', () => {
   it('MCP OAuth 로그인과 동의 페이지를 대시보드로 보내고 /token 경로를 막는다', () => {
     const options = createBetterAuthOptions(database, settingsFrom(REQUIRED_ENV));
 
-    expect(options.disabledPaths).toEqual(['/token']);
+    expect(options.disabledPaths).toContain('/token');
     expect(mcp).toHaveBeenCalledWith(
       expect.objectContaining({
         loginPage: 'http://localhost:5173/oauth/login',
@@ -120,6 +120,30 @@ describe('createBetterAuthOptions', () => {
       })
     );
   });
+
+  it('세션만으로 OAuth client 를 만들고 바꾸고 조회하는 경로를 막는다', () => {
+    const options = createBetterAuthOptions(database, settingsFrom(REQUIRED_ENV));
+
+    expect(options.disabledPaths).toEqual(
+      expect.arrayContaining([
+        '/oauth2/create-client',
+        '/oauth2/update-client',
+        '/oauth2/delete-client',
+        '/oauth2/client/rotate-secret',
+        '/oauth2/get-clients',
+        '/oauth2/get-client',
+      ])
+    );
+  });
+
+  it.each(['/oauth2/authorize', '/oauth2/token', '/oauth2/consent', '/oauth2/continue', '/oauth2/public-client'])(
+    'OAuth 흐름과 대시보드가 쓰는 %s 경로는 막지 않는다',
+    (path) => {
+      const options = createBetterAuthOptions(database, settingsFrom(REQUIRED_ENV));
+
+      expect(options.disabledPaths).not.toContain(path);
+    }
+  );
 
   it('CIMD 는 허용 호스트의 client 메타데이터 주소만 받아들이고 거부한 주소를 경고로 남긴다', () => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();

@@ -12,6 +12,15 @@ import { jwksSchema, oauthProviderSchema } from './oauth-schema';
 const MIN_SECRET_LENGTH = 32;
 const DEFAULT_ALLOWED_CLIENT_HOSTS = ['claude.ai', 'chatgpt.com'];
 const TRAILING_SLASHES = /\/+$/;
+const DISABLED_AUTH_PATHS = [
+  '/token',
+  '/oauth2/create-client',
+  '/oauth2/update-client',
+  '/oauth2/delete-client',
+  '/oauth2/client/rotate-secret',
+  '/oauth2/get-clients',
+  '/oauth2/get-client',
+];
 
 const mcpOAuthLogger = new Logger('McpOAuth');
 
@@ -84,7 +93,7 @@ export function createBetterAuthOptions(
     trustedOrigins: settings.trustedOrigins,
     basePath: '/auth',
     database,
-    disabledPaths: ['/token'],
+    disabledPaths: DISABLED_AUTH_PATHS,
     emailAndPassword: { enabled: true, disableSignUp: true },
     rateLimit: { enabled: false },
     plugins: [
