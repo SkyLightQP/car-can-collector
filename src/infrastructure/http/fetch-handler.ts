@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import type { NextFunction, Request as ExpressRequest, RequestHandler, Response as ExpressResponse } from 'express';
 
@@ -36,8 +37,12 @@ export function toExpressHandler(handler: FetchHandler): RequestHandler {
         res.end();
         return;
       }
-      Readable.fromWeb(fetchResponse.body as unknown as WebReadableStream).pipe(res);
+      await pipeline(Readable.fromWeb(fetchResponse.body as unknown as WebReadableStream), res);
     } catch (error) {
+      if (res.headersSent) {
+        res.destroy();
+        return;
+      }
       next(error);
     }
   };

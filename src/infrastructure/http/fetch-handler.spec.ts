@@ -1,3 +1,5 @@
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import express from 'express';
 import request from 'supertest';
 import { toExpressHandler, type FetchHandler } from './fetch-handler';
@@ -87,6 +89,64 @@ describe('toExpressHandler', () => {
 
     expect(response.headers['content-type']).toContain('text/event-stream');
     expect(response.body).toBe('data: one\n\ndata: two\n\n');
+  });
+
+  it('본문 스트림이 중간에 오류를 내도 프로세스가 죽지 않고 응답이 종료된다', async () => {
+    const encoder = new TextEncoder();
+    const app = createApp(() => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: one'));
+          setTimeout(() => controller.error(new Error('stream failure')), 20);
+        },
+      });
+      return Promise.resolve(new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } }));
+    });
+
+    const server = app.listen(0);
+    const { port } = server.address() as AddressInfo;
+
+    const outcome = await new Promise<string>((resolve) => {
+      const clientRequest = http.get({ port, path: '/mcp' }, (res) => {
+        res.on('data', () => undefined);
+        res.on('error', () => undefined);
+        res.on('close', () => resolve('closed'));
+      });
+      clientRequest.on('error', () => resolve('closed'));
+    });
+    server.close();
+
+    expect(outcome).toBe('closed');
+  });
+
+  it('클라이언트가 응답 도중 연결을 끊으면 원본 스트림을 취소한다', async () => {
+    const encoder = new TextEncoder();
+    const cancel = jest.fn();
+    const app = createApp(() => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: one'));
+        },
+        cancel,
+      });
+      return Promise.resolve(new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } }));
+    });
+    const server = app.listen(0);
+    const { port } = server.address() as AddressInfo;
+
+    await new Promise<void>((resolve) => {
+      const clientRequest = http.get({ port, path: '/mcp' }, (res) => {
+        res.once('data', () => {
+          clientRequest.destroy();
+          resolve();
+        });
+      });
+      clientRequest.on('error', () => undefined);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    server.close();
+
+    expect(cancel).toHaveBeenCalled();
   });
 
   it('핸들러가 던지면 Express 오류 처리로 넘긴다', async () => {
