@@ -66,6 +66,8 @@
 | `BETTER_AUTH_SECRET` | 로그인 토큰 서명 키. 32자 이상의 랜덤 문자열이며, 없으면 서버가 시작되지 않습니다 |
 | `BETTER_AUTH_URL` | 외부에서 접속하는 서버 주소 (예: `https://collector.example.com`) |
 | `TRUSTED_ORIGINS` | 로그인을 요청할 수 있는 대시보드 주소. 여러 개면 쉼표로 구분합니다 (예: `https://dash.example.com`) |
+| `DASHBOARD_URL` | 필수. MCP OAuth 로그인/동의 페이지(`/oauth/login`, `/oauth/consent`)가 있는 대시보드 주소 (예: `https://dash.example.com`) |
+| `MCP_ALLOWED_CLIENT_HOSTS` | 선택. `/mcp` 에 OAuth 로 연결할 수 있는 MCP 클라이언트 메타데이터 문서(CIMD)의 호스트. 쉼표로 구분하며 기본값은 `claude.ai,chatgpt.com`입니다 |
 | `PORT` | 선택. 서버 포트이며 기본값은 3000입니다 |
 
 ### 시작하기
