@@ -4,6 +4,7 @@ import { VehicleQueryService } from '@app/service/query/vehicle-query.service';
 import { TripQueryService } from '@app/service/query/trip-query.service';
 import { MaintenanceService } from '@app/service/maintenance.service';
 import { ApiKeyService } from '@app/service/api-key.service';
+import { OAuthConnectionService } from '@app/service/oauth-connection.service';
 import { createAppRouter } from './app.router';
 
 export const APP_ROUTER = Symbol('APP_ROUTER');
@@ -13,13 +14,14 @@ export const APP_ROUTER = Symbol('APP_ROUTER');
   providers: [
     {
       provide: APP_ROUTER,
-      inject: [VehicleQueryService, TripQueryService, MaintenanceService, ApiKeyService],
+      inject: [VehicleQueryService, TripQueryService, MaintenanceService, ApiKeyService, OAuthConnectionService],
       useFactory: (
         vehicle: VehicleQueryService,
         trips: TripQueryService,
         maintenance: MaintenanceService,
-        apiKeys: ApiKeyService
-      ) => createAppRouter({ vehicle, trips, maintenance, apiKeys }),
+        apiKeys: ApiKeyService,
+        oauthConnections: OAuthConnectionService
+      ) => createAppRouter({ vehicle, trips, maintenance, apiKeys, oauthConnections }),
     },
   ],
   exports: [APP_ROUTER],

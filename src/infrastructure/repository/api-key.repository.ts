@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ApiKey } from '@app/domain/api-key';
+import { ApiKey } from '@app/domain/api-key/api-key';
 import { ApiKeyEntity } from '@infrastructure/database/entities/api-key.entity';
 
 export interface NewApiKey {

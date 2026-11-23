@@ -6,6 +6,7 @@ import { VehicleQueryService } from '@app/service/query/vehicle-query.service';
 import { TripQueryService } from '@app/service/query/trip-query.service';
 import { MaintenanceService } from '@app/service/maintenance.service';
 import { ApiKeyService } from '@app/service/api-key.service';
+import { OAuthConnectionService } from '@app/service/oauth-connection.service';
 
 @Module({
   imports: [RepositoryModule],
@@ -16,6 +17,7 @@ import { ApiKeyService } from '@app/service/api-key.service';
     TripQueryService,
     MaintenanceService,
     ApiKeyService,
+    OAuthConnectionService,
   ],
   exports: [
     CanCollectorService,
@@ -24,6 +26,7 @@ import { ApiKeyService } from '@app/service/api-key.service';
     TripQueryService,
     MaintenanceService,
     ApiKeyService,
+    OAuthConnectionService,
   ],
 })
 export class ServiceModule {}

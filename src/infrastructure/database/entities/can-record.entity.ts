@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import { CanRecord } from '@app/domain/can-record';
+import { CanRecord } from '@app/domain/can/can-record';
 
 @Entity('can_record')
 export class CanRecordEntity {

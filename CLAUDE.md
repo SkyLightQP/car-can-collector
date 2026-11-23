@@ -4,13 +4,13 @@
 
 NestJS backend that ingests raw CAN bus frames from an ESP32 device installed in a car, decodes
 Hyundai/Kia CAN signals (per `hyundai_kia_generic.dbc`), and persists both the raw frames and the
-decoded/aggregated records to a TimescaleDB (Postgres) hypertable. The frontend that consumes this
-API is **car-can-dashboard**, a separate repository/project.
+decoded/aggregated records to TimescaleDB (Postgres). The frontend that consumes this API is
+**car-can-dashboard**, a separate repository.
 
 ## Commands
 
 ```bash
-# install deps (pnpm is required — see pnpm-lock.yaml / packageManager)
+# install deps (pnpm is required, see pnpm-lock.yaml / packageManager)
 pnpm install
 
 # run
@@ -20,8 +20,8 @@ pnpm run start:prod     # run compiled dist/main.js
 
 # build
 pnpm run build          # nest build -> dist/
-pnpm run build:types    # tRPC AppRouter 타입 -> types/dist (car-can-dashboard 용, 커밋 대상)
-pnpm run sync:types     # build:types 후 types/dist 를 ../car-can-dashboard/app/types/collector 로 복사
+pnpm run build:types    # tRPC AppRouter types -> types/dist (for car-can-dashboard, committed)
+pnpm run sync:types     # build:types, then copy types/dist to ../car-can-dashboard/app/types/collector
 
 # lint / format
 pnpm run lint           # eslint --fix over src,apps,libs,test
@@ -57,9 +57,10 @@ ESP32 (raw CAN frames, binary batch over HTTP)
        - both CanRaw[] and CanRecord[] are persisted in parallel
 ```
 
-The wire format (see `.llm/can_decoding_guide.md` for the full signal-by-signal DBC reference) is a
-flat array of 13-byte frames with **no batch header** — batch metadata travels in HTTP headers
-instead:
+### Wire format
+
+The full signal-by-signal DBC reference is in `.llm/can_decoding_guide.md`. The body is a flat array
+of 13-byte frames with **no batch header**. Batch metadata travels in HTTP headers instead:
 
 - `X-Device-ID`: device identifier
 - `X-Base-Ts`: batch base timestamp (ms); each frame's `ts_offset` is added to this
@@ -69,17 +70,20 @@ Each 13-byte frame is `ts_offset(u16 LE) + can_id(u16 LE) + dlc(u8) + data(8 byt
 
 ### Layering (`src/`)
 
-- `app/controller` — HTTP surface. `CollectController` validates payload shape/headers and delegates
-  to the service layer; guarded by `ApiKeyGuard` (looks up the SHA-256 of `X-Api-Key` in the `api_key` table).
-- `app/service` — business logic, framework-agnostic aside from DI decorators.
+- `app/controller`: ESP32 HTTP surface. `CollectController` validates payload shape/headers and
+  delegates to the service layer, guarded by `ApiKeyGuard`.
+- `app/trpc`: tRPC API for car-can-dashboard, mounted at `/trpc` in `main.ts`.
+- `app/mcp`: read-only MCP tools for AI agents, mounted at `/mcp` in `main.ts`.
+- `app/service`: business logic, framework-agnostic aside from DI decorators.
   - `CanCollectorService`: parses the binary batch into `CanRaw` domain objects and orchestrates
     saving raw + decoded data.
   - `CanDecodeService`: the CAN decoding engine (see below).
-- `app/domain` — plain domain objects (`CanRaw`, `CanRecord`), constructed only via static `from()`
-  factories, immutable (private fields via `#`).
-- `infrastructure/database` — TypeORM entities, TypeORM config (`database.config.ts` for the app,
+- `app/domain`: plain domain objects grouped by domain (`can/`, `trip/`, `maintenance/`, `api-key/`,
+  `time/`), constructed only via static `from()` factories, immutable (private fields via `#`).
+- `infrastructure/auth`: BetterAuth (dashboard login and the MCP OAuth server).
+- `infrastructure/database`: TypeORM entities, TypeORM config (`database.config.ts` for the app,
   standalone `data-source.ts` for the CLI/migrations), and migrations.
-- `infrastructure/repository` — repositories that translate between domain objects and TypeORM
+- `infrastructure/repository`: repositories that translate between domain objects and TypeORM
   entities (`fromDomain()` / `toDomain()` on each entity), using `orIgnore()` upserts since CAN
   frames/records can legitimately duplicate on the composite PK (`time`, `device_id`, [`can_id`]).
 
@@ -99,14 +103,14 @@ This is the part most likely to need careful reasoning about correctness:
   signals like odometer or drive mode.
 - `decode(frames)` groups incoming frames by device, sorts by timestamp, applies each frame to that
   device's state via `applyFrame` (one CAN ID per case), and only emits a `CanRecord` if at least one
-  *relevant* (mapped) CAN ID was seen in the batch — the record's timestamp is the latest frame
+  *relevant* (mapped) CAN ID was seen in the batch. The record's timestamp is the latest frame
   timestamp in that batch.
 - Signal extraction is little-endian bit-level: `extractLE(data, startBit, length)` pulls bits across
   byte boundaries, `toSigned` applies two's-complement for signed signals, and physical value =
-  `raw * factor + offset`. Any new CAN ID/signal must follow this same decode pattern — the mapping
+  `raw * factor + offset`. Any new CAN ID/signal must follow this same decode pattern. The mapping
   from CAN ID to fields is in `applyFrame`, and the authoritative signal definitions (startBit,
   length, signed, factor, offset per CAN ID) are documented in `.llm/can_decoding_guide.md`.
-- `engineOn` is a derived flag (`engineRpm > 0`) — there is no direct ignition signal in the captured
+- `engineOn` is a derived flag (`engineRpm > 0`). There is no direct ignition signal in the captured
   CAN IDs.
 - TPMS pressure bytes use `0xFF` as "sensor not received", decoded to `null` rather than `255`.
 
@@ -115,75 +119,6 @@ This is the part most likely to need careful reasoning about correctness:
 - Postgres with the TimescaleDB extension; `can_raw` and `can_record` are both hypertables
   (partitioned by `time`, see the `migrations/` for `create_hypertable` calls).
 - `can_raw` PK is `(time, device_id, can_id)`; `can_record` PK is `(time, device_id)`.
-- `maintenance_record` (PK `id` uuid) and `maintenance_schedule` (PK `type`) are plain tables, not hypertables.
-- `api_key` (PK `id` uuid, UNIQUE `key_hash`) is a plain table. It stores only the SHA-256 hex of each key plus a
-  12-char display prefix; the plaintext key is returned once from `apiKeys.create` and never stored.
-- `auth_user`, `auth_session`, `auth_account`, `auth_verification` are plain tables owned by BetterAuth (schema via TypeORM migration, not the BetterAuth CLI).
-- `synchronize` is always `false` — schema changes go through TypeORM migrations only.
+- `synchronize` is always `false`. Schema changes go through TypeORM migrations only.
 - `data-source.ts` (used by the `migration:*` CLI scripts) loads `.env` directly via `dotenv` and is
   intentionally separate from `database.module.ts` (used by the running app via `ConfigService`).
-
-### Dashboard query API (tRPC)
-
-car-can-dashboard 는 `/trpc` 의 tRPC API 를 쓴다. 조회: `vehicle.status`, `vehicle.batteryHistory`, `trips.daily`,
-`trips.last`, `trips.weekly`, `maintenance.alerts`, `maintenance.records.list`, `maintenance.schedules.list`, `apiKeys.list`.
-변경(mutation): `maintenance.records.create` / `update` / `delete`, `maintenance.schedules.update`, `apiKeys.create` / `delete`.
-
-- `src/app/trpc/`: Zod 스키마(`schemas/`)와 라우터 팩토리(`routers/`). 라우터는 `VehicleQueries`/`TripQueries`/
-  `MaintenanceOperations`/`ApiKeyOperations` 인터페이스에만 의존하고, `VehicleQueryService`/`TripQueryService`/`MaintenanceService`/`ApiKeyService` 가 이를 구현한다. `TrpcModule` 이 appRouter 를
-  `APP_ROUTER` 토큰으로 제공하고 `main.ts` 가 Express 어댑터로 `/trpc` 에 마운트한다(Nest 인터셉터/필터 미적용).
-- 집계 SQL 은 `CanRecordRepository` 에 있다: KST(`Asia/Seoul`) 날짜/주(월요일) 버킷, 시동 ON(`engine_rpm > 0`) 레코드 간
-  5분 초과 공백으로 세션 분할, 거리 = odometer MAX - MIN(0 제외), 주행 시간 = 5분 이하 간격의 합.
-  `engine_on` 컬럼은 추가 마이그레이션 이전 행이 기본값 FALSE 로 남아 있어 집계에 쓰지 않는다.
-- 정비: `maintenance_record`(이력, `type` enum)와 `maintenance_schedule`(타입별 `interval_km`/`warning_km`/`enabled`,
-  마이그레이션 시드)을 쓴다. 알림은 저장하지 않고 `MaintenanceSchedule.alertFor()` 가 타입별 최대 odometer 이력과 최신
-  `can_record` odometer(0 이면 미상)로 매번 계산한다. 타입 enum 은 `schemas/maintenance.schema.ts` 와 마이그레이션 CHECK
-  제약에 함께 있으니 같이 바꾼다. update 는 전체 교체이고, 서비스가 `null` 을 반환하면 라우터가 `NOT_FOUND` 로 바꾼다.
-- `src/app/trpc/index.ts` 에서 도달 가능한 파일은 상대 경로와 `zod`/`@trpc/server` 만 import 해야 한다.
-  `pnpm run build:types` 가 여기서 `types/dist` 를 만들고, `pnpm run sync:types` 가 이를 dashboard 의
-  `app/types/collector/` 로 복사한다(대상 경로는 `DASHBOARD_TYPES_DIR` 로 바꿀 수 있다). dashboard 는 `@/types/collector` 로 import 한다.
-  라우터/스키마를 바꾸면 `sync:types` 를 다시 돌려 collector 의 `types/dist` 와 dashboard 의 복사본을 각각 커밋한다.
-- 모든 procedure 는 `protectedProcedure` 다(`publicProcedure` 없음). `createContextFactory(AuthSessionReader)` 가 요청 헤더로 `ctx.user` 를 채우고, 없으면 `UNAUTHORIZED`(401).
-
-### Auth
-
-Two independent mechanisms:
-
-- `/can-collector/collect`: `ApiKeyGuard` hashes the `X-Api-Key` header (SHA-256 hex) and checks it exists in `api_key`
-  (controller-level `@UseGuards`, unchanged by BetterAuth). Keys are created/deleted from the dashboard settings page via
-  `apiKeys.*`; deletion revokes immediately (no cache). There is no `API_KEY` env var anymore. Keys are 256-bit random,
-  so plain SHA-256 is used instead of a slow KDF. To register an existing key by hand:
-
-  ```sql
-  INSERT INTO api_key (name, key_hash, key_prefix)
-  VALUES ('NAME', encode(sha256(convert_to('KEY', 'UTF8')), 'hex'), left('KEY', 12));
-  ```
-- `/trpc`: BetterAuth email/password login with DB sessions and the `bearer()` plugin. Clients sign in at
-  `POST /auth/sign-in/email`, read the `set-auth-token` response header, and send `Authorization: Bearer <token>`.
-  Sign-up is disabled. `/health` is public. BetterAuth rate limiting is disabled (`rateLimit.enabled: false`).
-
-`better-auth` is ESM-only. Only `src/infrastructure/auth/**` and `src/main.ts` may import it (loaded via Node's
-`require(esm)`); everything else depends on the `AuthSessionReader` interface so Jest never loads it.
-
-`main.ts` registration order matters: `/auth/*splat` (BetterAuth) -> `/trpc` -> `bodyParser.raw`. Both BetterAuth and
-tRPC read the raw request stream, and body-parser sets `req.body = undefined` on requests it skips.
-
-Tables `auth_user`, `auth_session`, `auth_account`, `auth_verification` (snake_case columns mapped via `modelName`/`fields`
-in `better-auth.ts`). Env: `BETTER_AUTH_SECRET` (32+ chars, required), `BETTER_AUTH_URL`.
-Accounts are created by hand in the DB (no sign-up, no script). Hash the password with BetterAuth's scrypt format first:
-
-```bash
-node -e "import('better-auth/crypto').then(m => m.hashPassword('PASSWORD')).then(console.log)"
-```
-
-```sql
-WITH new_user AS (
-  INSERT INTO auth_user (id, name, email, email_verified)
-  VALUES (gen_random_uuid()::text, 'NAME', 'EMAIL', TRUE)
-  RETURNING id
-)
-INSERT INTO auth_account (id, account_id, provider_id, user_id, password)
-SELECT gen_random_uuid()::text, id, 'credential', id, 'HASH' FROM new_user;
-```
-
-Deleting an `auth_user` row cascades to its sessions and accounts, which revokes its tokens immediately.

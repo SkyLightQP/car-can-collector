@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
-import { CanRaw } from '@app/domain/can-raw';
+import { CanRaw } from '@app/domain/can/can-raw';
 
 @Entity('can_raw')
 export class CanRawEntity {

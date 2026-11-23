@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MaintenanceSchedule } from '@app/domain/maintenance-schedule';
+import { MaintenanceSchedule } from '@app/domain/maintenance/maintenance-schedule';
 import { MaintenanceScheduleEntity } from '@infrastructure/database/entities/maintenance-schedule.entity';
 
 @Injectable()

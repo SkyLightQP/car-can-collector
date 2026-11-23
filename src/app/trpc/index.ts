@@ -27,3 +27,4 @@ export type {
   UpdateMaintenanceScheduleInput,
 } from './schemas/maintenance.schema';
 export type { ApiKeyView, CreateApiKeyInput, CreatedApiKey, DeleteApiKeyInput } from './schemas/api-key.schema';
+export type { OAuthConnectionView, RevokeOAuthConnectionInput } from './schemas/oauth-connection.schema';

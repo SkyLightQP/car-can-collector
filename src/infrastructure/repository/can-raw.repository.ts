@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CanRaw } from '@app/domain/can-raw';
+import { CanRaw } from '@app/domain/can/can-raw';
 import { CanRawEntity } from '@infrastructure/database/entities/can-raw.entity';
 
 @Injectable()

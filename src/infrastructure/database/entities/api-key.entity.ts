@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { ApiKey } from '@app/domain/api-key';
+import { ApiKey } from '@app/domain/api-key/api-key';
 
 @Entity('api_key')
 export class ApiKeyEntity {

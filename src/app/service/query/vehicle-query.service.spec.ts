@@ -1,4 +1,4 @@
-import { CanRecord, type CanRecordInput } from '@app/domain/can-record';
+import { CanRecord, type CanRecordInput } from '@app/domain/can/can-record';
 import type { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
 import { VehicleQueryService } from './vehicle-query.service';
 

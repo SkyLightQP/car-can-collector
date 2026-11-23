@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CanRecord } from '@app/domain/can-record';
+import { CanRecord } from '@app/domain/can/can-record';
 import { CanRecordEntity } from '@infrastructure/database/entities/can-record.entity';
 
 export interface DailyVoltageRow {

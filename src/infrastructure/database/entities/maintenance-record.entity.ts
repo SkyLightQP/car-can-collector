@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { MaintenanceRecord } from '@app/domain/maintenance-record';
+import { MaintenanceRecord } from '@app/domain/maintenance/maintenance-record';
 import type { MaintenanceType } from '@app/trpc/schemas/maintenance.schema';
 
 @Entity('maintenance_record')

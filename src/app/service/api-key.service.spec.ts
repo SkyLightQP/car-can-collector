@@ -1,4 +1,4 @@
-import { ApiKey, hashApiKey } from '@app/domain/api-key';
+import { ApiKey, hashApiKey } from '@app/domain/api-key/api-key';
 import type { ApiKeyRepository, NewApiKey } from '@infrastructure/repository/api-key.repository';
 import { ApiKeyService } from './api-key.service';
 

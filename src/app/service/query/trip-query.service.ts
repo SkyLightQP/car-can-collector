@@ -15,8 +15,8 @@ import type {
   WeeklyTrips,
   WeeklyTripsInput,
 } from '@app/trpc/schemas/trips.schema';
-import { KstDate } from '@app/domain/kst-date';
-import { DrivingStats } from '@app/domain/driving-stats';
+import { KstDate } from '@app/domain/time/kst-date';
+import { DrivingStats } from '@app/domain/trip/driving-stats';
 
 @Injectable()
 export class TripQueryService implements TripQueries {
