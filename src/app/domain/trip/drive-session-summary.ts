@@ -46,12 +46,12 @@ function summarizeSession(session: DriveReplaySession): DriveSessionSummary {
     endedAt: session.endedAt,
     drivingMinutes: Math.round(durationMs / 60_000),
     distanceKm: roundToTenth(distanceKm),
-    maxSpeedKph: Math.max(0, ...points.map((point) => point.speedKph)),
+    maxSpeedKph: points.reduce((max, point) => Math.max(max, point.speedKph), 0),
     avgSpeedKph: durationMs > 0 ? roundToTenth(distanceKm / (durationMs / MS_PER_HOUR)) : 0,
     hardAccelCount,
     hardBrakeCount,
-    maxBrakeBar: Math.max(0, ...points.map((point) => point.brakeBar)),
-    maxAccelPct: Math.max(0, ...points.map((point) => point.accelPct)),
+    maxBrakeBar: points.reduce((max, point) => Math.max(max, point.brakeBar), 0),
+    maxAccelPct: points.reduce((max, point) => Math.max(max, point.accelPct), 0),
   };
 }
 

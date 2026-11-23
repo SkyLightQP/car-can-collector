@@ -75,4 +75,12 @@ describe('summarizeDriveSessions', () => {
     expect(summary.maxAccelPct).toBe(80);
     expect(summary.maxSpeedKph).toBe(20);
   });
+
+  it('포인트가 수십만 개인 긴 세션도 최댓값을 구한다', () => {
+    const points = Array.from({ length: 300_000 }, (_, i) => point(T0 + i * 50, i === 150_000 ? 180 : 60, 20, 5));
+
+    const [summary] = summarizeDriveSessions(sessionOf(points));
+
+    expect(summary).toMatchObject({ maxSpeedKph: 180, maxAccelPct: 20, maxBrakeBar: 5 });
+  });
 });
