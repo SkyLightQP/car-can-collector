@@ -12,7 +12,6 @@ import { APP_ROUTER } from '@app/trpc/trpc.module';
 import { AUTH_SESSION_READER, BETTER_AUTH } from '@infrastructure/auth/auth.module';
 import { readBetterAuthSettings, type BetterAuthInstance } from '@infrastructure/auth/better-auth';
 import { createMcpRoute } from '@infrastructure/auth/mcp-route';
-import { toExpressHandler } from '@infrastructure/http/fetch-handler';
 import { MCP_HTTP_HANDLER } from '@app/mcp/mcp.module';
 
 async function bootstrap() {
@@ -23,12 +22,7 @@ async function bootstrap() {
   expressApp.all('/auth/*splat', toNodeHandler(auth));
   expressApp.all('/.well-known/*splat', toNodeHandler(auth));
   const settings = readBetterAuthSettings(app.get(ConfigService));
-  expressApp.all(
-    '/mcp',
-    toExpressHandler(createMcpRoute(auth, app.get(MCP_HTTP_HANDLER), settings.mcpResource), {
-      origin: new URL(settings.mcpResource).origin,
-    })
-  );
+  expressApp.all('/mcp', toNodeHandler(createMcpRoute(auth, app.get(MCP_HTTP_HANDLER), settings.mcpResource)));
 
   const trpcLogger = new Logger('tRPC');
   app.use(
