@@ -2,22 +2,56 @@ import type { McpHttpHandler } from '@modelcontextprotocol/server';
 import type { BetterAuthInstance } from './better-auth';
 import { createMcpRoute } from './mcp-route';
 
+const mockClaims = { azp: 'https://claude.ai/oauth/mcp-oauth-client-metadata', sub: 'user-1' };
+const mockChallenge =
+  'Bearer resource_metadata="https://collector.example.com/.well-known/oauth-protected-resource/mcp"';
+
 jest.mock('@better-auth/mcp', () => ({
   requireMcpAuth:
     (_auth: unknown, handler: (request: Request, claims: object) => Promise<Response>) => (request: Request) =>
-      handler(request, {}),
+      request.headers.has('authorization')
+        ? handler(request, mockClaims)
+        : Promise.resolve(new Response(null, { status: 401, headers: { 'www-authenticate': mockChallenge } })),
 }));
 
 const RESOURCE = 'https://collector.example.com/mcp';
 
-function createRouteCapturing(received: Request[]) {
+interface ConsentRow {
+  clientId: string;
+  userId: string;
+}
+
+const grantedConsent: ConsentRow = { clientId: mockClaims.azp, userId: mockClaims.sub };
+
+interface WhereClause {
+  field: keyof ConsentRow;
+  value: unknown;
+}
+
+function authWithConsents(consents: ConsentRow[]): BetterAuthInstance {
+  const adapter = {
+    findOne: ({ model, where }: { model: string; where: WhereClause[] }) =>
+      Promise.resolve(
+        model === 'oauthConsent'
+          ? (consents.find((consent) => where.every(({ field, value }) => consent[field] === value)) ?? null)
+          : null
+      ),
+  };
+  return { $context: Promise.resolve({ adapter }) } as unknown as BetterAuthInstance;
+}
+
+function createRouteCapturing(received: Request[], consents: ConsentRow[] = [grantedConsent]) {
   const mcp = {
     fetch: (request: Request) => {
       received.push(request);
       return Promise.resolve(new Response(null, { status: 204 }));
     },
   } as unknown as McpHttpHandler;
-  return createMcpRoute({} as BetterAuthInstance, mcp, RESOURCE);
+  return createMcpRoute(authWithConsents(consents), mcp, RESOURCE);
+}
+
+function mcpCall(url = 'http://internal:3000/mcp'): Request {
+  return new Request(url, { method: 'POST', headers: { authorization: 'Bearer t' }, body: '{}' });
 }
 
 describe('createMcpRoute', () => {
@@ -25,7 +59,7 @@ describe('createMcpRoute', () => {
     const received: Request[] = [];
     const route = createRouteCapturing(received);
 
-    await route(new Request('http://internal:3000/mcp?x=1'));
+    await route(mcpCall('http://internal:3000/mcp?x=1'));
 
     expect(received[0].url).toBe('https://collector.example.com/mcp?x=1');
   });
@@ -45,5 +79,39 @@ describe('createMcpRoute', () => {
     expect(received[0].method).toBe('POST');
     expect(received[0].headers.get('authorization')).toBe('Bearer t');
     expect(await received[0].json()).toEqual({ hello: 'world' });
+  });
+
+  it('토큰의 client 와 사용자에 대한 동의가 있으면 MCP 핸들러의 응답을 돌려준다', async () => {
+    const received: Request[] = [];
+    const route = createRouteCapturing(received);
+
+    const response = await route(mcpCall());
+
+    expect(response.status).toBe(204);
+    expect(received).toHaveLength(1);
+  });
+
+  it('동의가 없으면 토큰 없는 요청과 같은 401 인증 요구를 돌려주고 MCP 핸들러를 부르지 않는다', async () => {
+    const received: Request[] = [];
+    const route = createRouteCapturing(received, []);
+
+    const response = await route(mcpCall());
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('www-authenticate')).toBe(mockChallenge);
+    expect(received).toHaveLength(0);
+  });
+
+  it('다른 사용자나 다른 client 의 동의만 있으면 401 이다', async () => {
+    const received: Request[] = [];
+    const route = createRouteCapturing(received, [
+      { clientId: mockClaims.azp, userId: 'user-2' },
+      { clientId: 'https://chatgpt.com/oauth/client-metadata', userId: mockClaims.sub },
+    ]);
+
+    const response = await route(mcpCall());
+
+    expect(response.status).toBe(401);
+    expect(received).toHaveLength(0);
   });
 });

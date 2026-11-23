@@ -8,8 +8,35 @@ export function createMcpRoute(
   resource: string
 ): (request: Request) => Promise<Response> {
   const resourceOrigin = new URL(resource).origin;
-  const authorizedMcp = requireMcpAuth(auth, (request) => mcp.fetch(request), { resource });
+  const authorizedMcp: (request: Request) => Promise<Response> = requireMcpAuth(
+    auth,
+    async (request, { azp, sub }) => {
+      if (await hasConsent(auth, azp, sub)) return mcp.fetch(request);
+      return authorizedMcp(withoutCredentials(request));
+    },
+    { resource }
+  );
   return (request) => authorizedMcp(moveToResourceOrigin(request, resourceOrigin));
+}
+
+async function hasConsent(auth: BetterAuthInstance, clientId: unknown, userId: string | undefined): Promise<boolean> {
+  if (typeof clientId !== 'string' || !userId) return false;
+  const { adapter } = await auth.$context;
+  const consent = await adapter.findOne({
+    model: 'oauthConsent',
+    where: [
+      { field: 'clientId', value: clientId },
+      { field: 'userId', value: userId },
+    ],
+  });
+  return consent !== null;
+}
+
+function withoutCredentials(request: Request): Request {
+  const headers = new Headers(request.headers);
+  headers.delete('authorization');
+  headers.delete('dpop');
+  return new Request(request.url, { method: request.method, headers });
 }
 
 function moveToResourceOrigin(request: Request, origin: string): Request {
