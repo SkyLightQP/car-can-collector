@@ -4,6 +4,7 @@ import { CanRecordRepository } from '@infrastructure/repository/can-record.repos
 import { MaintenanceRecordRepository } from '@infrastructure/repository/maintenance-record.repository';
 import { MaintenanceScheduleRepository } from '@infrastructure/repository/maintenance-schedule.repository';
 import { ApiKeyRepository } from '@infrastructure/repository/api-key.repository';
+import { OAuthConnectionRepository } from '@infrastructure/repository/oauth-connection.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApiKeyEntity } from '@infrastructure/database/entities/api-key.entity';
 import { CanRawEntity } from '@infrastructure/database/entities/can-raw.entity';
@@ -27,6 +28,7 @@ import { MaintenanceScheduleEntity } from '@infrastructure/database/entities/mai
     MaintenanceRecordRepository,
     MaintenanceScheduleRepository,
     ApiKeyRepository,
+    OAuthConnectionRepository,
   ],
   exports: [
     CanRawRepository,
@@ -34,6 +36,7 @@ import { MaintenanceScheduleEntity } from '@infrastructure/database/entities/mai
     MaintenanceRecordRepository,
     MaintenanceScheduleRepository,
     ApiKeyRepository,
+    OAuthConnectionRepository,
   ],
 })
 export class RepositoryModule {}

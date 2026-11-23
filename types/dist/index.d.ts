@@ -3,3 +3,4 @@ export type { BatteryHistory, BatteryHistoryInput, VehicleStatus } from './schem
 export type { DailyTrip, DailyTrips, DailyTripsInput, DriveReplay, DriveReplayInput, DriveReplayPoint, DriveReplaySession, LastTrip, WeeklyTrip, WeeklyTrips, WeeklyTripsInput, } from './schemas/trips.schema';
 export type { CreateMaintenanceRecordInput, DeleteMaintenanceRecordInput, MaintenanceAlert, MaintenanceAlerts, MaintenanceRecordView, MaintenanceScheduleView, MaintenanceStatus, MaintenanceType, ScheduledMaintenanceType, UpdateMaintenanceRecordInput, UpdateMaintenanceScheduleInput, } from './schemas/maintenance.schema';
 export type { ApiKeyView, CreateApiKeyInput, CreatedApiKey, DeleteApiKeyInput } from './schemas/api-key.schema';
+export type { OAuthConnectionView, RevokeOAuthConnectionInput } from './schemas/oauth-connection.schema';
