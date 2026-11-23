@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CanRecordRepository, type DailyVoltageRow } from '@infrastructure/repository/can-record.repository';
 import type { VehicleQueries } from '@app/trpc/routers/vehicle.router';
 import type { BatteryHistory, BatteryHistoryInput, VehicleStatus } from '@app/trpc/schemas/vehicle.schema';
-import { KstDate } from '@app/domain/kst-date';
+import { KstDate } from '@app/domain/time/kst-date';
 
 @Injectable()
 export class VehicleQueryService implements VehicleQueries {

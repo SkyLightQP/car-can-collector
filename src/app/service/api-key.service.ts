@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type ApiKey, generateApiKeySecret, hashApiKey } from '@app/domain/api-key';
+import { type ApiKey, generateApiKeySecret, hashApiKey } from '@app/domain/api-key/api-key';
 import type { ApiKeyOperations } from '@app/trpc/routers/api-key.router';
 import type { ApiKeyView, CreateApiKeyInput, CreatedApiKey, DeleteApiKeyInput } from '@app/trpc/schemas/api-key.schema';
 import { ApiKeyRepository } from '@infrastructure/repository/api-key.repository';

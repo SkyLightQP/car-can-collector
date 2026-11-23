@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CanRaw } from '@app/domain/can-raw';
+import { CanRaw } from '@app/domain/can/can-raw';
 import { CanRawRepository } from '@infrastructure/repository/can-raw.repository';
 import { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
 import { CanDecodeService } from '@app/service/can-decode.service';

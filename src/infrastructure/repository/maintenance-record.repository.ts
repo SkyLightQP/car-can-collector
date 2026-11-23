@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MaintenanceRecord, type MaintenanceRecordFields } from '@app/domain/maintenance-record';
+import { MaintenanceRecord, type MaintenanceRecordFields } from '@app/domain/maintenance/maintenance-record';
 import { MaintenanceRecordEntity } from '@infrastructure/database/entities/maintenance-record.entity';
 
 @Injectable()

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { CanRaw } from '@app/domain/can-raw';
-import { CanRecord } from '@app/domain/can-record';
+import { CanRaw } from '@app/domain/can/can-raw';
+import { CanRecord } from '@app/domain/can/can-record';
 import { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
 
 const DRIVE_MODE: Record<number, string> = {

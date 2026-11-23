@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { CanRecord } from '@app/domain/can-record';
-import { MaintenanceRecord } from '@app/domain/maintenance-record';
-import { MaintenanceSchedule } from '@app/domain/maintenance-schedule';
+import type { CanRecord } from '@app/domain/can/can-record';
+import { MaintenanceRecord } from '@app/domain/maintenance/maintenance-record';
+import { MaintenanceSchedule } from '@app/domain/maintenance/maintenance-schedule';
 import type { MaintenanceOperations } from '@app/trpc/routers/maintenance.router';
 import type {
   CreateMaintenanceRecordInput,

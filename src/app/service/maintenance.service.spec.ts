@@ -1,5 +1,5 @@
-import { MaintenanceRecord } from '@app/domain/maintenance-record';
-import { MaintenanceSchedule } from '@app/domain/maintenance-schedule';
+import { MaintenanceRecord } from '@app/domain/maintenance/maintenance-record';
+import { MaintenanceSchedule } from '@app/domain/maintenance/maintenance-schedule';
 import type { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
 import type { MaintenanceRecordRepository } from '@infrastructure/repository/maintenance-record.repository';
 import type { MaintenanceScheduleRepository } from '@infrastructure/repository/maintenance-schedule.repository';

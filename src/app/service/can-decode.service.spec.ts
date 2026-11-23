@@ -1,5 +1,5 @@
-import { CanRaw } from '@app/domain/can-raw';
-import { CanRecord } from '@app/domain/can-record';
+import { CanRaw } from '@app/domain/can/can-raw';
+import { CanRecord } from '@app/domain/can/can-record';
 import type { CanRecordRepository } from '@infrastructure/repository/can-record.repository';
 import { CanDecodeService } from './can-decode.service';
 

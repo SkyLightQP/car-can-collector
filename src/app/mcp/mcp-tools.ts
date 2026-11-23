@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { summarizeDriveSessions } from '@app/domain/drive-session-summary';
+import { summarizeDriveSessions } from '@app/domain/trip/drive-session-summary';
 import type { VehicleQueries } from '@app/trpc/routers/vehicle.router';
 import type { TripQueries } from '@app/trpc/routers/trips.router';
 import type { MaintenanceOperations } from '@app/trpc/routers/maintenance.router';
