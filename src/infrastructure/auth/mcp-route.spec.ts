@@ -2,7 +2,12 @@ import type { McpHttpHandler } from '@modelcontextprotocol/server';
 import type { BetterAuthInstance } from './better-auth';
 import { createMcpRoute } from './mcp-route';
 
-const mockClaims = { azp: 'https://claude.ai/oauth/mcp-oauth-client-metadata', sub: 'user-1' };
+const TOKEN_ISSUED_AT_SECONDS = 1_800_000_000;
+const mockClaims = {
+  azp: 'https://claude.ai/oauth/mcp-oauth-client-metadata',
+  sub: 'user-1',
+  iat: TOKEN_ISSUED_AT_SECONDS,
+};
 const mockChallenge =
   'Bearer resource_metadata="https://collector.example.com/.well-known/oauth-protected-resource/mcp"';
 
@@ -19,9 +24,14 @@ const RESOURCE = 'https://collector.example.com/mcp';
 interface ConsentRow {
   clientId: string;
   userId: string;
+  createdAt: Date;
 }
 
-const grantedConsent: ConsentRow = { clientId: mockClaims.azp, userId: mockClaims.sub };
+function consentCreatedAt(milliseconds: number): ConsentRow {
+  return { clientId: mockClaims.azp, userId: mockClaims.sub, createdAt: new Date(milliseconds) };
+}
+
+const grantedConsent = consentCreatedAt((TOKEN_ISSUED_AT_SECONDS - 60) * 1000);
 
 interface WhereClause {
   field: keyof ConsentRow;
@@ -105,13 +115,33 @@ describe('createMcpRoute', () => {
   it('다른 사용자나 다른 client 의 동의만 있으면 401 이다', async () => {
     const received: Request[] = [];
     const route = createRouteCapturing(received, [
-      { clientId: mockClaims.azp, userId: 'user-2' },
-      { clientId: 'https://chatgpt.com/oauth/client-metadata', userId: mockClaims.sub },
+      { ...grantedConsent, userId: 'user-2' },
+      { ...grantedConsent, clientId: 'https://chatgpt.com/oauth/client-metadata' },
     ]);
 
     const response = await route(mcpCall());
 
     expect(response.status).toBe(401);
     expect(received).toHaveLength(0);
+  });
+
+  it('철회 뒤 다시 동의했으면 그 전에 발급된 토큰은 401 이다', async () => {
+    const received: Request[] = [];
+    const route = createRouteCapturing(received, [consentCreatedAt((TOKEN_ISSUED_AT_SECONDS + 1) * 1000)]);
+
+    const response = await route(mcpCall());
+
+    expect(response.status).toBe(401);
+    expect(received).toHaveLength(0);
+  });
+
+  it('동의와 같은 초에 발급된 토큰은 동의 시각의 밀리초가 더 늦어도 통과한다', async () => {
+    const received: Request[] = [];
+    const route = createRouteCapturing(received, [consentCreatedAt(TOKEN_ISSUED_AT_SECONDS * 1000 + 800)]);
+
+    const response = await route(mcpCall());
+
+    expect(response.status).toBe(204);
+    expect(received).toHaveLength(1);
   });
 });

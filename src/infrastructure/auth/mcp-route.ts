@@ -10,8 +10,8 @@ export function createMcpRoute(
   const resourceOrigin = new URL(resource).origin;
   const authorizedMcp: (request: Request) => Promise<Response> = requireMcpAuth(
     auth,
-    async (request, { azp, sub }) => {
-      if (await hasConsent(auth, azp, sub)) return mcp.fetch(request);
+    async (request, { azp, sub, iat }) => {
+      if (await isCoveredByCurrentConsent(auth, azp, sub, iat)) return mcp.fetch(request);
       return authorizedMcp(withoutCredentials(request));
     },
     { resource }
@@ -19,17 +19,23 @@ export function createMcpRoute(
   return (request) => authorizedMcp(moveToResourceOrigin(request, resourceOrigin));
 }
 
-async function hasConsent(auth: BetterAuthInstance, clientId: unknown, userId: string | undefined): Promise<boolean> {
-  if (typeof clientId !== 'string' || !userId) return false;
+async function isCoveredByCurrentConsent(
+  auth: BetterAuthInstance,
+  clientId: unknown,
+  userId: string | undefined,
+  issuedAtSeconds: number | undefined
+): Promise<boolean> {
+  if (typeof clientId !== 'string' || !userId || issuedAtSeconds === undefined) return false;
   const { adapter } = await auth.$context;
-  const consent = await adapter.findOne({
+  const consent = await adapter.findOne<{ createdAt: Date }>({
     model: 'oauthConsent',
     where: [
       { field: 'clientId', value: clientId },
       { field: 'userId', value: userId },
     ],
   });
-  return consent !== null;
+  if (!consent) return false;
+  return issuedAtSeconds >= Math.floor(consent.createdAt.getTime() / 1000);
 }
 
 function withoutCredentials(request: Request): Request {
