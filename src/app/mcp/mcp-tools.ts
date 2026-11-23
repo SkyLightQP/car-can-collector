@@ -38,7 +38,7 @@ export function registerReadOnlyTools(server: McpServer, deps: McpToolDeps): voi
     'get_vehicle_status',
     {
       description:
-        '차량의 최신 상태를 조회한다. 주행거리(km), 속도(km/h), 타이어 공기압(bar), 배터리 전압 등을 포함하며 데이터가 없으면 null 이다.',
+        '차량의 최신 상태를 조회한다. 측정 시각, 시동 여부, 주행거리(km), 배터리 전압(V), 타이어 공기압(psi), TPMS 경고 상태를 포함하며 데이터가 없으면 null 이다.',
       inputSchema: noInputSchema,
       annotations: READ_ONLY,
     },
